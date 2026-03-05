@@ -59,13 +59,13 @@ let nextId = 1;
 
 /* ---- Custom Date Input ---- */
 function DateInput({
-id,
-value,
-onChange,
-variant = "purple",
-hasError = false,
+	id,
+	value,
+	onChange,
+	variant = "purple",
+	hasError = false,
 }: {
-id?: string;
+	id?: string;
 	value: string;
 	onChange: (v: string) => void;
 	variant?: "purple" | "green";
@@ -79,7 +79,7 @@ id?: string;
 		.join(" ");
 
 	return (
-<div className={wrapClass}>
+		<div className={wrapClass}>
 			<span className="ca-date-icon">
 				<CalendarDays size={15} />
 			</span>
@@ -91,7 +91,7 @@ id?: string;
 /* ---- Inline field error ---- */
 function FieldError({ msg }: { msg: string }) {
 	return (
-<span className="ca-field-error">
+		<span className="ca-field-error">
 			<AlertCircle size={12} />
 			{msg}
 		</span>
@@ -232,9 +232,8 @@ function SubjectCombobox({
 						<li
 							role="option"
 							aria-selected={activeIdx === filtered.length}
-							className={`ca-combobox-option ca-combobox-add ${
-								activeIdx === filtered.length ? "highlighted" : ""
-							}`}
+							className={`ca-combobox-option ca-combobox-add ${activeIdx === filtered.length ? "highlighted" : ""
+								}`}
 							onMouseDown={(e) => {
 								e.preventDefault();
 								select(value.trim());
@@ -253,7 +252,7 @@ function SubjectCombobox({
 /* ---- Wizard Stepper ---- */
 function WizardStepper({ step }: { step: 1 | 2 }) {
 	return (
-<div className="ca-stepper">
+		<div className="ca-stepper">
 			<div className={`ca-step-item ${step === 1 ? "active" : "done"}`}>
 				<div className="ca-step-circle">
 					{step > 1 ? <Check size={13} strokeWidth={3} /> : <span>1</span>}
@@ -421,10 +420,10 @@ export default function CreateActivityModal({ open, onClose, onCreate, knownSubj
 			due_date: dueDate,
 			total_estimated_hours: estimatedHours === "" ? 0 : Number(estimatedHours),
 			subtasks: subtasks.map(({ title, target_date, estimated_hours }) => ({
-title,
-target_date,
-estimated_hours,
-})),
+				title,
+				target_date,
+				estimated_hours,
+			})),
 		};
 
 		try {
@@ -446,7 +445,7 @@ estimated_hours,
 	const slideClass = slideDir === "forward" ? "ca-step-slide-forward" : "ca-step-slide-back";
 
 	const modal = (
-<div
+		<div
 			className="ca-backdrop"
 			role="dialog"
 			aria-modal="true"
@@ -541,8 +540,8 @@ estimated_hours,
 											value={estimatedHours}
 											onChange={(e) =>
 												setEstimatedHours(
-e.target.value === "" ? "" : Number(e.target.value),
-)
+													e.target.value === "" ? "" : Number(e.target.value),
+												)
 											}
 											placeholder="0"
 										/>
@@ -620,8 +619,8 @@ e.target.value === "" ? "" : Number(e.target.value),
 												value={stHours}
 												onChange={(e) =>
 													setStHours(
-e.target.value === "" ? "" : Number(e.target.value),
-)
+														e.target.value === "" ? "" : Number(e.target.value),
+													)
 												}
 												placeholder="0"
 												disabled={atMax}
@@ -630,12 +629,12 @@ e.target.value === "" ? "" : Number(e.target.value),
 									</div>
 
 									{atMax ? (
-<div className="ca-subform-max">
+										<div className="ca-subform-max">
 											<AlertTriangle size={13} />
 											Límite de {MAX_SUBTASKS} subtareas alcanzado
 										</div>
 									) : (
-<button
+										<button
 											type="button"
 											className="ca-subform-add-btn"
 											onClick={handleAddSubtask}
@@ -649,7 +648,7 @@ e.target.value === "" ? "" : Number(e.target.value),
 
 								<div className="ca-subtask-table-wrap">
 									{subtasks.length === 0 ? (
-<div className="ca-subtask-empty">
+										<div className="ca-subtask-empty">
 											<div className="ca-subtask-empty-icon">
 												<Layers size={16} />
 											</div>
@@ -660,7 +659,7 @@ e.target.value === "" ? "" : Number(e.target.value),
 											</p>
 										</div>
 									) : (
-<table className="ca-subtask-table">
+										<table className="ca-subtask-table">
 											<thead>
 												<tr>
 													<th style={{ width: 24 }} />
@@ -675,7 +674,7 @@ e.target.value === "" ? "" : Number(e.target.value),
 											</thead>
 											<tbody>
 												{subtasks.map((st, idx) => (
-<tr
+													<tr
 														key={st.id}
 														draggable
 														onDragStart={(e) => handleDragStart(e, idx)}
@@ -746,7 +745,7 @@ e.target.value === "" ? "" : Number(e.target.value),
 
 					<div className="ca-footer-actions">
 						{step === 1 ? (
-<>
+							<>
 								<button
 									type="button"
 									className="btn btn-ghost"
@@ -760,7 +759,7 @@ e.target.value === "" ? "" : Number(e.target.value),
 								</button>
 							</>
 						) : (
-<>
+							<>
 								<button
 									type="button"
 									className="btn btn-ghost btn-back"
@@ -785,12 +784,12 @@ e.target.value === "" ? "" : Number(e.target.value),
 										disabled={submitting}
 									>
 										{submitting ? (
-<>
+											<>
 												<Loader2 size={14} className="spin" /> Procesando...
 											</>
 										) : (
-"Crear actividad"
-)}
+											"Crear actividad"
+										)}
 									</button>
 								</div>
 							</>

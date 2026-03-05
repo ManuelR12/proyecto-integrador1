@@ -478,7 +478,7 @@ export default function CreateActivityModal({ open, onClose, onCreate, knownSubj
 				<div className="ca-wizard-body">
 					<div key={animKey} className={`ca-step-content ${slideClass}`}>
 
-						{/* ---- STEP 1: General Info ---- */}
+						{/* --z-- STEP 1: General Info ---- */}
 						{step === 1 && (
 							<div className="ca-step-panel">
 								<div className="ca-row">

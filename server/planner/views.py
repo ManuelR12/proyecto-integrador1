@@ -12,8 +12,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Activity, Subtask
-from .serializers import ActivitySerializer, SubtaskSerializer, UserSerializer
+from .models import Activity, Subject, Subtask
+from .serializers import ActivitySerializer, SubjectSerializer, SubtaskSerializer, UserSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -598,3 +598,31 @@ class TodayView(APIView):
 				{"errors": {"server": "Internal server error"}},
 				status=status.HTTP_500_INTERNAL_SERVER_ERROR,
 			)
+
+
+class SubjectViewSet(viewsets.ModelViewSet):
+	"""
+	CRUD Endpoints for Academic Subjects.
+	"""
+
+	serializer_class = SubjectSerializer
+	permission_classes = [IsAuthenticated]
+
+	def get_queryset(self):
+		return Subject.objects.all().order_by("-creation_date")
+
+	@extend_schema(
+		summary="List subjects",
+		description="Retrieve a list of all academic subjects.",
+		responses=SubjectSerializer(many=True),
+	)
+	def list(self, request, *args, **kwargs):
+		return super().list(request, *args, **kwargs)
+
+	@extend_schema(
+		summary="Retrieve subject",
+		description="Get details of a specific subject by ID.",
+		responses=SubjectSerializer,
+	)
+	def retrieve(self, request, *args, **kwargs):
+		return super().retrieve(request, *args, **kwargs)

@@ -260,7 +260,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 		() => [...new Set(activities.map((a) => a.course_name).filter(Boolean))].sort(),
 		[activities],
 	);
-	const capacityTotal = user.max_daily_hours;
+	const capacityTotal = user?.max_daily_hours ?? 0;
 	const capacityPercent =
 		capacityTotal > 0 ? Math.min((capacityUsed / capacityTotal) * 100, 100) : 0;
 
@@ -581,6 +581,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 							<CreateActivityModal
 								open={createOpen}
 								onClose={() => setCreateOpen(false)}
+								initialSubject={prefilledSubject}
 								knownSubjects={knownSubjects}
 								onCreate={async (payload: NewActivityPayloadFromModal) => {
 									try {

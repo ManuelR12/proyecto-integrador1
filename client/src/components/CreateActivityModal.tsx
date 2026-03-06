@@ -284,6 +284,7 @@ export default function CreateActivityModal({
 	onClose,
 	onCreate,
 	knownSubjects = [],
+	initialSubject,
 }: Props) {
 	/* Wizard */
 	const [step, setStep] = useState<1 | 2>(1);
@@ -323,7 +324,9 @@ export default function CreateActivityModal({
 		} else if (initialSubject) {
 			setSubject(initialSubject);
 		}
-	}, [open, initialSubject]);
+		// initialSubject is intentionally read only when `open` changes (seed on open)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [open]);
 
 	function clearAll() {
 		setStep(1);

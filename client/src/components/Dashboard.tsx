@@ -603,8 +603,14 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 															0,
 														)
 													: 0),
+											subtasks: payload.subtasks?.map((s) => ({
+												name: s.title,
+												target_date: s.target_date,
+												estimated_hours: Number(s.estimated_hours || 0),
+											})),
 										};
 
+										console.log("createActivity payload:", apiPayload);
 										const resp = await createActivity(apiPayload);
 
 										const totalHoursFromPayload =

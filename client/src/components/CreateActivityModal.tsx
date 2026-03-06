@@ -296,7 +296,6 @@ export default function CreateActivityModal({
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
 	const [dueDate, setDueDate] = useState("");
-	const [estimatedHours, setEstimatedHours] = useState<number | string>("");
 
 	/* Validation */
 	const [step1Submitted, setStep1Submitted] = useState(false);
@@ -336,7 +335,6 @@ export default function CreateActivityModal({
 		setTitle("");
 		setDescription("");
 		setDueDate("");
-		setEstimatedHours("");
 		setStTitle("");
 		setStDate("");
 		setStHours("");
@@ -434,7 +432,6 @@ export default function CreateActivityModal({
 			title: title.trim(),
 			description: description.trim(),
 			due_date: dueDate,
-			total_estimated_hours: estimatedHours === "" ? 0 : Number(estimatedHours),
 			subtasks: subtasks.map(({ title, target_date, estimated_hours }) => ({
 				title,
 				target_date,
@@ -509,24 +506,23 @@ export default function CreateActivityModal({
 									{step1Submitted && subjectError && <FieldError msg={subjectError} />}
 								</div>
 
-								<div className="ca-row">
-									<label
-										htmlFor="ca-title"
-										className={step1Submitted && titleError ? "label-error" : ""}
-									>
-										Título {step1Submitted && titleError ? "·" : "*"}
-									</label>
-									<input
-										id="ca-title"
-										value={title}
-										onChange={(e) => setTitle(e.target.value)}
-										placeholder="¿Qué vas a hacer?"
-										className={step1Submitted && titleError ? "input-error" : ""}
-									/>
-									{step1Submitted && titleError && <FieldError msg={titleError} />}
-								</div>
-
 								<div className="ca-row split">
+									<div>
+										<label
+											htmlFor="ca-title"
+											className={step1Submitted && titleError ? "label-error" : ""}
+										>
+											Título {step1Submitted && titleError ? "·" : "*"}
+										</label>
+										<input
+											id="ca-title"
+											value={title}
+											onChange={(e) => setTitle(e.target.value)}
+											placeholder="¿Qué vas a hacer?"
+											className={step1Submitted && titleError ? "input-error" : ""}
+										/>
+										{step1Submitted && titleError && <FieldError msg={titleError} />}
+									</div>
 									<div>
 										<label
 											htmlFor="ca-due-date"
@@ -542,20 +538,6 @@ export default function CreateActivityModal({
 											hasError={step1Submitted && !!dueDateError}
 										/>
 										{step1Submitted && dueDateError && <FieldError msg={dueDateError} />}
-									</div>
-									<div>
-										<label htmlFor="ca-hours">Horas estimadas</label>
-										<input
-											id="ca-hours"
-											type="number"
-											min={0}
-											step={0.5}
-											value={estimatedHours}
-											onChange={(e) =>
-												setEstimatedHours(e.target.value === "" ? "" : Number(e.target.value))
-											}
-											placeholder="0"
-										/>
 									</div>
 								</div>
 

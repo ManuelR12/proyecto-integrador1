@@ -1,12 +1,12 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
 	CalendarCheck,
-	CalendarClock,
 	AlertTriangle,
 	Plus,
 	SlidersHorizontal,
 	Search,
-	ChevronDown,
 	Sunrise,
 	CloudSun,
 	MoonStar,
@@ -22,19 +22,17 @@ import {
 	Tag,
 	ArrowUpDown,
 	Loader2,
-	Inbox,
 	Trash2,
-	Edit3,
+	Folder,
+	BookOpen,
 } from "lucide-react";
 import lumaLogo from "../assets/luma.png";
 import {
 	fetchMe,
 	fetchActivities,
+	fetchTodayView,
 	createActivity,
 	deleteActivity,
-	fetchSubtasks,
-	updateSubtask,
-	deleteSubtask,
 	type User,
 	type Activity,
 	type Subtask,
@@ -42,143 +40,10 @@ import {
 import { toast } from "sonner";
 import "./Dashboard.css";
 import CreateActivityModal from "./CreateActivityModal";
-import SubtaskManagerModal from "./SubtaskManagerModal";
-
-// Local type matching the modal's payload (keeps Dashboard free of `any` casts)
-type NewActivityPayloadFromModal = {
-	subject: string;
-	title: string;
-	description?: string;
-	due_date: string;
-	total_estimated_hours?: number;
-	subtasks: { title: string; target_date: string; estimated_hours: number | string }[];
-};
-
-/* ============ MOCK DATA (fallback) ============ */
-const MOCK_USER: User = {
-	id: 1,
-	username: "juanr",
-	email: "juanr@luma.com",
-	name: "Juan Rodríguez",
-	max_daily_hours: 8,
-	date_joined: new Date().toISOString(),
-};
-
-const MOCK_ACTIVITIES: Activity[] = [
-	{
-		id: 1,
-		user: 1,
-		title: "Revisión de diseño",
-		course_name: "Diseño",
-		description: "Revisar pantallas Figma y comentarios",
-		due_date: "2026-02-25",
-		status: "pending",
-		subtask_count: 3,
-		total_estimated_hours: 2,
-	},
-	{
-		id: 2,
-		user: 1,
-		title: "Implementar autenticación",
-		course_name: "Backend",
-		description: "Agregar login con JWT y refresco de token",
-		due_date: "2026-02-27",
-		status: "in_progress",
-		subtask_count: 5,
-		total_estimated_hours: 4,
-	},
-	{
-		id: 3,
-		user: 1,
-		title: "Testing E2E",
-		course_name: "QA",
-		description: "Escribir pruebas Cypress para flujo de login",
-		due_date: "2026-02-27",
-		status: "pending",
-		subtask_count: 2,
-		total_estimated_hours: 1,
-	},
-	{
-		id: 4,
-		user: 1,
-		title: "Deploy a staging",
-		course_name: "DevOps",
-		description: "Actualizar imagen Docker y desplegar a staging",
-		due_date: "2026-03-02",
-		status: "pending",
-		subtask_count: 1,
-		total_estimated_hours: 2,
-	},
-	{
-		id: 5,
-		user: 1,
-		title: "Documentación API",
-		course_name: "Docs",
-		description: "Añadir ejemplos de endpoints y respuestas",
-		due_date: "2026-03-05",
-		status: "pending",
-		subtask_count: 4,
-		total_estimated_hours: 3,
-	},
-];
-
-const MOCK_SUBTASKS_FOR_DROPDOWN: Subtask[] = [
-	{
-		id: 1,
-		name: "Ingresar a la cuenta de la universidad",
-		estimated_hours: 1,
-		target_date: "2026-02-27",
-		status: "completed",
-		ordering: 1,
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-	},
-	{
-		id: 2,
-		name: "Cambiar los wireframes de Manuel",
-		estimated_hours: 1.5,
-		target_date: "2026-02-27",
-		status: "completed",
-		ordering: 2,
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-	},
-	{
-		id: 3,
-		name: "Enviar cambios a equipo de UI",
-		estimated_hours: 1,
-		target_date: "2026-02-28",
-		status: "pending",
-		ordering: 3,
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-	},
-];
-
-/* ============ HELPERS ============ */
-function formatDate(iso: string | null | undefined): string {
-	if (iso == null || typeof iso !== "string") return "—";
-	const parts = iso.split("-");
-	if (parts.length < 3) return iso;
-	const [y, m, d] = parts;
-	return `${d}/${m}/${y}`;
-}
-
-function formatHours(h?: number): string {
-	if (h === undefined || h === null || Number.isNaN(h)) return "0H";
-	return h === 1 ? "1H" : `${h}H`;
-}
-
-type SectionVariant = "overdue" | "today" | "upcoming";
-
-function classifyActivity(dueDateIso: string): SectionVariant {
-	const today = new Date();
-	today.setHours(0, 0, 0, 0);
-	const due = new Date(dueDateIso + "T00:00:00");
-	if (due < today) return "overdue";
-	if (due.getTime() === today.getTime()) return "today";
-	return "upcoming";
-}
+import { classifyActivity, type NewActivityPayloadFromModal } from "./dashboardUtils";
+import OrganizationView from "./OrganizationView";
+import TodayKanban from "./TodayView";
+import { SubjectFormModal } from "./OrganizationView";
 
 /* ============ COMPONENT ============ */
 interface DashboardProps {
@@ -186,16 +51,19 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ onLogout }: DashboardProps) {
-	const [activeNav, setActiveNav] = useState("today");
+	const { pathname } = useLocation();
+	const navigate = useNavigate();
+	const activeNav =
+		pathname === "/organizacion" ? "org" : pathname === "/progreso" ? "progress" : "today";
 	const [searchOpen, setSearchOpen] = useState(false);
+	const [searchQuery, setSearchQuery] = useState("");
 	const [showWave, setShowWave] = useState(false);
 	const [filtersOpen, setFiltersOpen] = useState(false);
-	const [activeFilters, setActiveFilters] = useState<string[]>(["urgency"]);
+	const [activeFilters, setActiveFilters] = useState<string[]>([]);
 	const filterRef = useRef<HTMLDivElement>(null);
 
-	/* ---- Mock data state (will be replaced with real API) ---- */
-	const [user, setUser] = useState<User>(MOCK_USER);
-	const [activities, setActivities] = useState<Activity[]>(MOCK_ACTIVITIES);
+	const [user, setUser] = useState<User | null>(null);
+	const [activities, setActivities] = useState<Activity[]>([]);
 	const [loading, setLoading] = useState<boolean>(() => {
 		try {
 			if (typeof window === "undefined") return false;
@@ -204,7 +72,97 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 			return false;
 		}
 	});
+	const [todayData, setTodayData] = useState<{
+		overdue: Subtask[];
+		today: Subtask[];
+		upcoming: Subtask[];
+	} | null>(null);
 	const [createOpen, setCreateOpen] = useState(false);
+	const [prefilledSubject, setPrefilledSubject] = useState("");
+	const [subjectModal, setSubjectModal] = useState<{
+		mode: "add" | "rename";
+		current?: string;
+	} | null>(null);
+	const [customSubjects, setCustomSubjects] = useState<string[]>(() => {
+		try {
+			return JSON.parse(localStorage.getItem("luma_subjects") ?? "[]") as string[];
+		} catch {
+			return [];
+		}
+	});
+
+	const subjects = useMemo<string[]>(() => {
+		const fromActivities = activities.map((a) => a.course_name).filter(Boolean);
+		return Array.from(new Set([...fromActivities, ...customSubjects])).sort();
+	}, [activities, customSubjects]);
+
+	function addCustomSubject(name: string) {
+		const trimmed = name.trim();
+		if (!trimmed) return;
+		setCustomSubjects((prev) => {
+			if (prev.includes(trimmed)) return prev;
+			const next = [...prev, trimmed];
+			try {
+				localStorage.setItem("luma_subjects", JSON.stringify(next));
+			} catch {
+				// localStorage unavailable — ignore
+			}
+			return next;
+		});
+	}
+
+	function removeCustomSubject(name: string) {
+		setCustomSubjects((prev) => {
+			const next = prev.filter((s) => s !== name);
+			try {
+				localStorage.setItem("luma_subjects", JSON.stringify(next));
+			} catch {
+				// localStorage unavailable — ignore
+			}
+			return next;
+		});
+	}
+
+	function renameCustomSubject(oldName: string, newName: string) {
+		const trimmed = newName.trim();
+		if (!trimmed || trimmed === oldName) return;
+		setCustomSubjects((prev) => {
+			const next = prev.includes(oldName)
+				? prev.map((s) => (s === oldName ? trimmed : s))
+				: [...prev, trimmed];
+			try {
+				localStorage.setItem("luma_subjects", JSON.stringify(next));
+			} catch {
+				// localStorage unavailable — ignore
+			}
+			return next;
+		});
+	}
+
+	const headerInfo = useMemo(() => {
+		switch (activeNav) {
+			case "org":
+				return {
+					title: "Organización",
+					TitleIcon: Folder,
+					tipText:
+						"Agrupamos tus actividades por materia para darte una vista clara del trimestre.",
+				};
+			case "progress":
+				return {
+					title: "Mi progreso",
+					TitleIcon: BarChart3,
+					tipText: "Analiza tu desempeño, el tiempo invertido y tus estadísticas generales.",
+				};
+			default:
+				return {
+					title: "Hoy",
+					TitleIcon: CalendarCheck,
+					tipText:
+						"Tus subtareas más urgentes, ordenadas para que puedas avanzar rápido. Marca cada una al terminar.",
+				};
+		}
+	}, [activeNav]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -217,16 +175,24 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 			}
 
 			try {
-				const [me, acts] = await Promise.all([fetchMe(), fetchActivities()]);
+				const [me, acts, todayView] = await Promise.all([
+					fetchMe(),
+					fetchActivities(),
+					fetchTodayView(),
+				]);
 				if (!cancelled) {
-					setUser(me || MOCK_USER);
-					setActivities(Array.isArray(acts) ? acts : MOCK_ACTIVITIES);
+					setUser(me ?? null);
+					setActivities(Array.isArray(acts) ? acts : []);
+					setTodayData({
+						overdue: todayView.overdue,
+						today: todayView.today,
+						upcoming: todayView.upcoming,
+					});
 				}
-			} catch {
-				console.warn("Error al traer datos reales, usando datos de prueba:", err);
+			} catch (err) {
+				console.error("Error cargando datos:", err);
 				if (!cancelled) {
-					setUser(MOCK_USER);
-					setActivities(MOCK_ACTIVITIES);
+					setActivities([]);
 				}
 			} finally {
 				if (!cancelled) setLoading(false);
@@ -280,30 +246,16 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 		setActiveFilters((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]));
 	}, []);
 
-	const overdue = useMemo(
-		() => (activities || []).filter((a) => classifyActivity(a.due_date) === "overdue"),
-		[activities],
-	);
 	const today = useMemo(
 		() => (activities || []).filter((a) => classifyActivity(a.due_date) === "today"),
 		[activities],
 	);
-	const upcoming = useMemo(
-		() => (activities || []).filter((a) => classifyActivity(a.due_date) === "upcoming"),
-		[activities],
-	);
-
-	// Controls to programmatically open/scroll a section after creation
-	const [openSection, setOpenSection] = useState<{ name: SectionVariant | null; key: number }>({
-		name: null,
-		key: 0,
-	});
 
 	const capacityUsed = useMemo(
 		() => today.reduce((sum, a) => sum + a.total_estimated_hours, 0),
 		[today],
 	);
-	const capacityTotal = user.max_daily_hours;
+	const capacityTotal = user?.max_daily_hours ?? 8;
 	const capacityPercent =
 		capacityTotal > 0 ? Math.min((capacityUsed / capacityTotal) * 100, 100) : 0;
 
@@ -322,7 +274,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 			setActivities((prev) => prev.filter((a) => a.id !== id));
 			toast.success("Actividad eliminada");
 			setConfirmDelete(null);
-		} catch {
+		} catch (err) {
 			console.error("Error deleting activity:", err);
 			toast.error("No se pudo eliminar la actividad");
 		} finally {
@@ -333,58 +285,135 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 	return (
 		<div className="dashboard">
 			{/* Confirm delete modal */}
-			{confirmDelete && (
-				<div
-					className="ca-backdrop"
-					role="dialog"
-					aria-modal="true"
-					onMouseDown={(e) => {
-						if (e.target === e.currentTarget) setConfirmDelete(null);
-					}}
-				>
-					<div className="ca-modal ca-modal-compact">
-						<div className="ca-header">
-							<div className="ca-header-left">
-								<div className="ca-header-icon">
-									<AlertTriangle size={20} />
-								</div>
-								<div className="ca-header-text">
-									<h3>Confirmar eliminación</h3>
-									<p className="ca-subtitle">Vas a eliminar: {confirmDelete.title}</p>
-								</div>
-							</div>
-							<button
-								className="ca-close"
-								onClick={() => setConfirmDelete(null)}
-								aria-label="Cerrar"
+			{confirmDelete &&
+				createPortal(
+					<>
+						<div
+							onClick={() => setConfirmDelete(null)}
+							style={{
+								position: "fixed",
+								inset: 0,
+								background: "rgba(4,3,12,0.72)",
+								backdropFilter: "blur(14px) saturate(150%)",
+								WebkitBackdropFilter: "blur(14px) saturate(150%)",
+								zIndex: 9999,
+								animation: "fadeInBackdrop 0.18s ease",
+							}}
+						/>
+						<div
+							style={{
+								position: "fixed",
+								inset: 0,
+								zIndex: 10000,
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "center",
+								padding: "20px",
+							}}
+						>
+							<div
+								onClick={(e) => e.stopPropagation()}
+								style={{
+									position: "relative",
+									background: "linear-gradient(155deg,#1a0e0e 0%,#110909 55%,#090404 100%)",
+									border: "1px solid rgba(248,113,113,0.2)",
+									borderRadius: "16px",
+									width: "100%",
+									maxWidth: "360px",
+									boxShadow: "0 25px 60px rgba(0,0,0,0.65), inset 0 0 60px rgba(239,68,68,0.03)",
+									animation: "fadeInScale 0.22s cubic-bezier(0.16,1,0.3,1)",
+									textAlign: "center",
+									padding: "32px 28px 24px",
+								}}
 							>
-								<X size={15} />
-							</button>
-						</div>
-						<div className="ca-body">
-							<p>
-								¿Estás seguro que deseas eliminar esta actividad? Esta acción no se puede deshacer.
-							</p>
-							<div className="ca-actions">
-								<button
-									className="btn btn-ghost"
-									onClick={() => setConfirmDelete(null)}
-									disabled={deleting}
+								<div
+									className="modal-glow-line"
+									style={{
+										background:
+											"linear-gradient(90deg, transparent, rgba(239,68,68,0.5) 28%, rgba(248,113,113,0.3) 62%, transparent)",
+									}}
+								/>
+								<div
+									style={{
+										width: "56px",
+										height: "56px",
+										borderRadius: "50%",
+										background: "rgba(248,113,113,0.12)",
+										border: "1px solid rgba(248,113,113,0.25)",
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "center",
+										margin: "0 auto 20px",
+									}}
 								>
-									Cancelar
-								</button>
-								<button
-									className="btn btn-primary"
-									onClick={() => performDeleteActivity(confirmDelete.id)}
-									disabled={deleting}
+									<Trash2 size={22} color="#f87171" />
+								</div>
+								<p
+									style={{ margin: "0 0 8px", fontSize: "17px", fontWeight: 700, color: "#f1f5f9" }}
 								>
-									{deleting ? "Eliminando..." : "Eliminar"}
-								</button>
+									Confirmar eliminación
+								</p>
+								<p
+									style={{
+										margin: "0 0 24px",
+										fontSize: "13px",
+										color: "#94a3b8",
+										lineHeight: 1.6,
+									}}
+								>
+									Se eliminará permanentemente{" "}
+									<strong style={{ color: "#e2e8f0" }}>"{confirmDelete.title}"</strong>. Esta acción
+									no se puede deshacer.
+								</p>
+								<div style={{ display: "flex", gap: "10px" }}>
+									<button
+										onClick={() => performDeleteActivity(confirmDelete.id)}
+										disabled={deleting}
+										className="modal-btn-danger"
+										style={{
+											flex: 1,
+											padding: "11px 14px",
+											borderRadius: "8px",
+											border: "none",
+											cursor: deleting ? "wait" : "pointer",
+											fontSize: "13px",
+											fontWeight: 700,
+											background: "#ef4444",
+											color: "#fff",
+											display: "flex",
+											alignItems: "center",
+											justifyContent: "center",
+											gap: "7px",
+											opacity: deleting ? 0.7 : 1,
+										}}
+									>
+										{deleting ? <Loader2 size={13} className="spinner" /> : <Trash2 size={13} />}
+										{deleting ? "Eliminando..." : "Sí, eliminar"}
+									</button>
+									<button
+										onClick={() => setConfirmDelete(null)}
+										disabled={deleting}
+										className="modal-btn-cancel"
+										style={{
+											flex: 1,
+											padding: "11px 14px",
+											borderRadius: "8px",
+											border: "1px solid #334155",
+											cursor: "pointer",
+											fontSize: "13px",
+											fontWeight: 600,
+											background: "transparent",
+											color: "#94a3b8",
+										}}
+									>
+										Cancelar
+									</button>
+								</div>
 							</div>
 						</div>
-					</div>
-				</div>
-			)}
+					</>,
+					document.body,
+				)}
 			{/* ======= SIDEBAR ======= */}
 			<aside className="sidebar">
 				{/* User profile */}
@@ -401,7 +430,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 						<>
 							<div className="profile-avatar">
 								<div className="avatar-placeholder">
-									{user.name ? (
+									{user?.name ? (
 										<span className="avatar-initials">
 											{user.name
 												.split(" ")
@@ -417,8 +446,8 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 								<div className="avatar-status" />
 							</div>
 							<div className="profile-info">
-								<span className="profile-name">{user.name || user.username}</span>
-								<span className="profile-role">{user.email}</span>
+								<span className="profile-name">{user?.name || user?.username}</span>
+								<span className="profile-role">{user?.email}</span>
 							</div>
 							<button className="profile-menu-btn" aria-label="Menu">
 								<MoreVertical size={18} />
@@ -446,21 +475,21 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 				<nav className="sidebar-nav">
 					<button
 						className={`nav-item ${activeNav === "today" ? "active" : ""}`}
-						onClick={() => setActiveNav("today")}
+						onClick={() => navigate("/hoy")}
 					>
 						<CalendarCheck size={18} />
 						<span>Hoy</span>
 					</button>
 					<button
 						className={`nav-item ${activeNav === "progress" ? "active" : ""}`}
-						onClick={() => setActiveNav("progress")}
+						onClick={() => navigate("/progreso")}
 					>
 						<BarChart3 size={18} />
 						<span>Mi progreso</span>
 					</button>
 					<button
 						className={`nav-item ${activeNav === "org" ? "active" : ""}`}
-						onClick={() => setActiveNav("org")}
+						onClick={() => navigate("/organizacion")}
 					>
 						<Users size={18} />
 						<span>Organización</span>
@@ -509,29 +538,48 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 						{/* Tip banner */}
 						<div className="tip-banner fade-in" style={{ animationDelay: "0.05s" }}>
 							<Sparkles size={18} className="tip-icon" />
-							<p>
-								Ordenamos por urgencia y luego por las actividades más cortas para que avances
-								rápido.
-							</p>
+							<p>{headerInfo.tipText}</p>
 						</div>
 
 						{/* Header toolbar */}
 						<div className="content-header fade-in" style={{ animationDelay: "0.12s" }}>
 							<div className="header-left">
 								<h1 className="page-title">
-									<CalendarCheck size={22} className="title-icon" />
-									Actividades
+									<headerInfo.TitleIcon size={22} className="title-icon" />
+									{headerInfo.title}
 								</h1>
-								<button className="btn-add" onClick={() => setCreateOpen(true)}>
-									<Plus size={16} />
-									<span>Añadir actividad</span>
-								</button>
+								{activeNav === "org" && (
+									<>
+										<button
+											className="btn-add"
+											style={{ background: "#334155", border: "1px solid #475569" }}
+											onClick={() => setSubjectModal({ mode: "add" })}
+										>
+											<BookOpen size={16} />
+											<span>Agregar materia</span>
+										</button>
+										<button
+											className="btn-add"
+											onClick={() => {
+												setPrefilledSubject("");
+												setCreateOpen(true);
+											}}
+										>
+											<Plus size={16} />
+											<span>Nueva actividad</span>
+										</button>
+									</>
+								)}
 							</div>
 
-							{/* Create activity modal (top-level) */}
+							{/* Create activity modal (rendered at top level to avoid z-index issues) */}
 							<CreateActivityModal
 								open={createOpen}
-								onClose={() => setCreateOpen(false)}
+								initialSubject={prefilledSubject}
+								onClose={() => {
+									setCreateOpen(false);
+									setPrefilledSubject("");
+								}}
 								onCreate={async (payload: NewActivityPayloadFromModal) => {
 									try {
 										const apiPayload = {
@@ -577,19 +625,20 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 										};
 										setActivities((prev) => [created, ...prev]);
 
-										const section = classifyActivity(created.due_date);
-										setOpenSection((prev) => ({ name: section, key: prev.key + 1 }));
-
 										setCreateOpen(false);
 										toast.success("Actividad creada");
-									} catch {
+									} catch (err) {
 										console.error("Failed to create activity:", err);
 										toast.error("Error creando la actividad. Intenta de nuevo.");
 									}
 								}}
 							/>
 							<div className="header-right">
-								<div className="filter-wrapper" ref={filterRef}>
+								<div
+									className="filter-wrapper"
+									ref={filterRef}
+									style={{ display: activeNav === "today" ? "none" : undefined }}
+								>
 									<button
 										className={`btn-filter ${filtersOpen ? "active" : ""}`}
 										onClick={() => setFiltersOpen(!filtersOpen)}
@@ -604,48 +653,81 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 									{/* Filter panel */}
 									<div className={`filter-panel ${filtersOpen ? "open" : ""}`}>
 										<div className="filter-panel-header">
-											<span>Filtrar por</span>
+											<span>{activeNav === "org" ? "Ordenar materias" : "Filtrar por"}</span>
 											<button className="filter-close" onClick={() => setFiltersOpen(false)}>
 												<X size={14} />
 											</button>
 										</div>
 
 										<div className="filter-options">
-											<button
-												className={`filter-chip ${activeFilters.includes("urgency") ? "on" : ""}`}
-												onClick={() => toggleFilter("urgency")}
-											>
-												<AlertTriangle size={13} />
-												Urgencia
-											</button>
-											<button
-												className={`filter-chip ${activeFilters.includes("duration") ? "on" : ""}`}
-												onClick={() => toggleFilter("duration")}
-											>
-												<Clock size={13} />
-												Duración
-											</button>
-											<button
-												className={`filter-chip ${activeFilters.includes("date") ? "on" : ""}`}
-												onClick={() => toggleFilter("date")}
-											>
-												<CalendarCheck size={13} />
-												Fecha límite
-											</button>
-											<button
-												className={`filter-chip ${activeFilters.includes("category") ? "on" : ""}`}
-												onClick={() => toggleFilter("category")}
-											>
-												<Tag size={13} />
-												Categoría
-											</button>
-											<button
-												className={`filter-chip ${activeFilters.includes("alphabetical") ? "on" : ""}`}
-												onClick={() => toggleFilter("alphabetical")}
-											>
-												<ArrowUpDown size={13} />
-												Alfabético
-											</button>
+											{activeNav === "org" ? (
+												<>
+													<button
+														className={`filter-chip ${activeFilters.includes("org-az") ? "on" : ""}`}
+														onClick={() => toggleFilter("org-az")}
+													>
+														<ArrowUpDown size={13} />A → Z
+													</button>
+													<button
+														className={`filter-chip ${activeFilters.includes("org-za") ? "on" : ""}`}
+														onClick={() => toggleFilter("org-za")}
+													>
+														<ArrowUpDown size={13} />Z → A
+													</button>
+													<button
+														className={`filter-chip ${activeFilters.includes("org-count") ? "on" : ""}`}
+														onClick={() => toggleFilter("org-count")}
+													>
+														<Tag size={13} />
+														Más actividades
+													</button>
+													<button
+														className={`filter-chip ${activeFilters.includes("org-hours") ? "on" : ""}`}
+														onClick={() => toggleFilter("org-hours")}
+													>
+														<Clock size={13} />
+														Más horas
+													</button>
+												</>
+											) : (
+												<>
+													<button
+														className={`filter-chip ${activeFilters.includes("urgency") ? "on" : ""}`}
+														onClick={() => toggleFilter("urgency")}
+													>
+														<AlertTriangle size={13} />
+														Urgencia
+													</button>
+													<button
+														className={`filter-chip ${activeFilters.includes("duration") ? "on" : ""}`}
+														onClick={() => toggleFilter("duration")}
+													>
+														<Clock size={13} />
+														Duración
+													</button>
+													<button
+														className={`filter-chip ${activeFilters.includes("date") ? "on" : ""}`}
+														onClick={() => toggleFilter("date")}
+													>
+														<CalendarCheck size={13} />
+														Fecha límite
+													</button>
+													<button
+														className={`filter-chip ${activeFilters.includes("category") ? "on" : ""}`}
+														onClick={() => toggleFilter("category")}
+													>
+														<Tag size={13} />
+														Categoría
+													</button>
+													<button
+														className={`filter-chip ${activeFilters.includes("alphabetical") ? "on" : ""}`}
+														onClick={() => toggleFilter("alphabetical")}
+													>
+														<ArrowUpDown size={13} />
+														Alfabético
+													</button>
+												</>
+											)}
 										</div>
 										{activeFilters.length > 0 && (
 											<button className="filter-clear" onClick={() => setActiveFilters([])}>
@@ -666,544 +748,94 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 											type="text"
 											placeholder="Buscar actividades..."
 											className="search-input"
+											value={searchQuery}
+											onChange={(e) => setSearchQuery(e.target.value)}
 										/>
 									</div>
 								</div>
 							</div>
 						</div>
 
-						{/* Activity sections */}
-						<div className="activity-sections fade-in" style={{ animationDelay: "0.2s" }}>
-							<ActivitySection
-								title="Vencidas"
-								icon={<AlertTriangle size={18} />}
-								count={overdue.length}
-								activities={overdue}
-								variant="overdue"
-								openTrigger={openSection.name === "overdue" ? openSection.key : undefined}
-								onDelete={requestDeleteActivity}
+						{/* ===== TODAY VIEW ===== */}
+						{activeNav === "today" && (
+							<TodayKanban
+								initialData={todayData}
+								onDataRefresh={setTodayData}
+								activities={activities}
+								searchQuery={searchQuery}
 							/>
+						)}
+						{/* ===== ORG VIEW ===== */}
+						{activeNav === "org" && (
+							<OrganizationView
+								activities={activities}
+								subjects={subjects}
+								onDelete={requestDeleteActivity}
+								onAddSubject={addCustomSubject}
+								onRemoveSubject={removeCustomSubject}
+								onRenameSubject={renameCustomSubject}
+								onActivityUpdate={(updated) =>
+									setActivities((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
+								}
+								activeFilters={activeFilters}
+								searchQuery={searchQuery}
+								onOpenCreate={(subject) => {
+									setPrefilledSubject(subject ?? "");
+									setCreateOpen(true);
+								}}
+							/>
+						)}
 
-							<ActivitySection
-								title="Para hoy"
-								icon={<CalendarClock size={18} />}
-								count={today.length}
-								activities={today}
-								variant="today"
-								openTrigger={openSection.name === "today" ? openSection.key : undefined}
-								onDelete={requestDeleteActivity}
-							/>
-
-							<ActivitySection
-								title="Próximas"
-								icon={<CalendarClock size={18} />}
-								count={upcoming.length}
-								activities={upcoming}
-								variant="upcoming"
-								openTrigger={openSection.name === "upcoming" ? openSection.key : undefined}
-								onDelete={requestDeleteActivity}
-							/>
-						</div>
+						{/* ===== PROGRESS VIEW ===== */}
+						{activeNav === "progress" && (
+							<div
+								className="fade-in"
+								style={{
+									animationDelay: "0.2s",
+									padding: "4rem 2rem",
+									textAlign: "center",
+									color: "#94a3b8",
+								}}
+							>
+								<BarChart3
+									size={48}
+									style={{ opacity: 0.2, margin: "0 auto 1rem auto", display: "block" }}
+								/>
+								<p>Vista de progreso en construcción...</p>
+							</div>
+						)}
 					</>
 				)}
+				{/* Subject name modal (from header button) */}
+				{subjectModal &&
+					createPortal(
+						<div
+							style={{
+								position: "fixed",
+								inset: 0,
+								background: "rgba(4,3,12,0.72)",
+								backdropFilter: "blur(14px) saturate(150%)",
+								WebkitBackdropFilter: "blur(14px) saturate(150%)",
+								zIndex: 9998,
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "center",
+							}}
+							onClick={() => setSubjectModal(null)}
+						>
+							<SubjectFormModal
+								mode={subjectModal.mode}
+								current={subjectModal.current}
+								onClose={() => setSubjectModal(null)}
+								onConfirm={(name) => {
+									addCustomSubject(name);
+									setSubjectModal(null);
+								}}
+							/>
+						</div>,
+						document.body,
+					)}
 			</main>
 		</div>
-	);
-}
-
-/* ============ SUB-COMPONENTS ============ */
-
-interface ActivitySectionProps {
-	title: string;
-	icon: React.ReactNode;
-	count: number;
-	activities: Activity[];
-	variant: SectionVariant;
-	openTrigger?: number;
-	onDelete?: (id: number, title: string) => void;
-}
-
-function ActivitySection({
-	title,
-	icon,
-	count,
-	activities,
-	variant,
-	openTrigger,
-	onDelete,
-}: ActivitySectionProps) {
-	const [collapsed, setCollapsed] = useState(false);
-	const sectionRef = useRef<HTMLElement | null>(null);
-	const prevTrigger = useRef<number | undefined>(undefined);
-	const isEmpty = activities.length === 0;
-
-	const [activeSubtaskManager, setActiveSubtaskManager] = useState<Activity | null>(null);
-	const [expandedActivityId, setExpandedActivityId] = useState<number | null>(null);
-	const [confirmDeleteSubtask, setConfirmDeleteSubtask] = useState<{
-		activityId: number;
-		subtaskId: number;
-		name: string;
-	} | null>(null);
-	const [deletingSubtask, setDeletingSubtask] = useState(false);
-	const [subtaskStateByActivity, setSubtaskStateByActivity] = useState<
-		Record<number, { loading: boolean; error: string | null; items: Subtask[] }>
-	>({});
-	const [optimisticSubtaskSnapshots, setOptimisticSubtaskSnapshots] = useState<
-		Record<number, Subtask[]>
-	>({});
-
-	useEffect(() => {
-		if (openTrigger === undefined) return;
-		if (prevTrigger.current === openTrigger) return;
-		prevTrigger.current = openTrigger;
-
-		let cancelled = false;
-		Promise.resolve().then(() => {
-			if (cancelled) return;
-			setCollapsed(false);
-			if (sectionRef.current) {
-				sectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-			}
-		});
-
-		return () => {
-			cancelled = true;
-		};
-	}, [openTrigger]);
-
-	async function handleToggleSubtasks(activity: Activity) {
-		if (expandedActivityId === activity.id) {
-			setExpandedActivityId(null);
-			return;
-		}
-		setExpandedActivityId(activity.id);
-		setSubtaskStateByActivity((prev) => ({
-			...prev,
-			[activity.id]: {
-				loading: true,
-				error: null,
-				items: prev[activity.id]?.items ?? [],
-			},
-		}));
-		try {
-			const items = await fetchSubtasks(activity.id);
-			setSubtaskStateByActivity((prev) => ({
-				...prev,
-				[activity.id]: { loading: false, error: null, items },
-			}));
-		} catch {
-			console.error("Failed to load subtasks, using mock data:", err);
-			setSubtaskStateByActivity((prev) => ({
-				...prev,
-				[activity.id]: {
-					loading: false,
-					error: null,
-					items: MOCK_SUBTASKS_FOR_DROPDOWN,
-				},
-			}));
-		}
-	}
-
-	async function handleToggleSubtaskStatus(activityId: number, subtask: Subtask) {
-		const nextStatus: Subtask["status"] = subtask.status === "completed" ? "pending" : "completed";
-		setOptimisticSubtaskSnapshots((prev) => ({
-			...prev,
-			[activityId]: subtaskStateByActivity[activityId]?.items ?? [],
-		}));
-		setSubtaskStateByActivity((prev) => ({
-			...prev,
-			[activityId]: {
-				...(prev[activityId] ?? { loading: false, error: null, items: [] }),
-				items: (prev[activityId]?.items ?? []).map((item) =>
-					item.id === subtask.id ? { ...item, status: nextStatus } : item,
-				),
-			},
-		}));
-		try {
-			const updated = await updateSubtask(activityId, subtask.id, { status: nextStatus });
-			setSubtaskStateByActivity((prev) => ({
-				...prev,
-				[activityId]: {
-					...(prev[activityId] ?? { loading: false, error: null, items: [] }),
-					items: (prev[activityId]?.items ?? []).map((item) =>
-						item.id === subtask.id ? updated : item,
-					),
-				},
-			}));
-		} catch {
-			toast.error("No se pudo actualizar el estado de la subtarea.");
-			setSubtaskStateByActivity((prev) => ({
-				...prev,
-				[activityId]: {
-					...(prev[activityId] ?? { loading: false, error: null, items: [] }),
-					items: optimisticSubtaskSnapshots[activityId] ?? prev[activityId]?.items ?? [],
-				},
-			}));
-		}
-	}
-
-	function requestDeleteSubtask(activityId: number, subtask: Subtask) {
-		setConfirmDeleteSubtask({ activityId, subtaskId: subtask.id, name: subtask.name });
-	}
-
-	async function performDeleteSubtask() {
-		if (!confirmDeleteSubtask) return;
-		const { activityId, subtaskId } = confirmDeleteSubtask;
-
-		setDeletingSubtask(true);
-
-		setOptimisticSubtaskSnapshots((prev) => ({
-			...prev,
-			[activityId]: subtaskStateByActivity[activityId]?.items ?? [],
-		}));
-		setSubtaskStateByActivity((prev) => ({
-			...prev,
-			[activityId]: {
-				...(prev[activityId] ?? { loading: false, error: null, items: [] }),
-				items: (prev[activityId]?.items ?? []).filter((item) => item.id !== subtaskId),
-			},
-		}));
-
-		try {
-			await deleteSubtask(activityId, subtaskId);
-			toast.success("Subtarea eliminada.");
-			setConfirmDeleteSubtask(null); // Cierra el modal si hay éxito
-		} catch (err) {
-			console.error(err);
-			toast.error("No se pudo eliminar la subtarea.");
-			setSubtaskStateByActivity((prev) => ({
-				...prev,
-				[activityId]: {
-					...(prev[activityId] ?? { loading: false, error: null, items: [] }),
-					items: optimisticSubtaskSnapshots[activityId] ?? prev[activityId]?.items ?? [],
-				},
-			}));
-		} finally {
-			setDeletingSubtask(false);
-		}
-	}
-
-	async function handleEditSubtaskName(activityId: number, subtask: Subtask) {
-		const nextName = window.prompt("Editar subtarea", subtask.name)?.trim();
-		if (!nextName || nextName === subtask.name) return;
-		setOptimisticSubtaskSnapshots((prev) => ({
-			...prev,
-			[activityId]: subtaskStateByActivity[activityId]?.items ?? [],
-		}));
-		setSubtaskStateByActivity((prev) => ({
-			...prev,
-			[activityId]: {
-				...(prev[activityId] ?? { loading: false, error: null, items: [] }),
-				items: (prev[activityId]?.items ?? []).map((item) =>
-					item.id === subtask.id ? { ...item, name: nextName } : item,
-				),
-			},
-		}));
-		try {
-			const updated = await updateSubtask(activityId, subtask.id, { name: nextName });
-			setSubtaskStateByActivity((prev) => ({
-				...prev,
-				[activityId]: {
-					...(prev[activityId] ?? { loading: false, error: null, items: [] }),
-					items: (prev[activityId]?.items ?? []).map((item) =>
-						item.id === subtask.id ? updated : item,
-					),
-				},
-			}));
-		} catch {
-			toast.error("No se pudo actualizar la subtarea.");
-			setSubtaskStateByActivity((prev) => ({
-				...prev,
-				[activityId]: {
-					...(prev[activityId] ?? { loading: false, error: null, items: [] }),
-					items: optimisticSubtaskSnapshots[activityId] ?? prev[activityId]?.items ?? [],
-				},
-			}));
-		}
-	}
-
-	return (
-		<section
-			ref={sectionRef}
-			className={`activity-section section-${variant}`}
-			id={`section-${variant}`}
-		>
-			{confirmDeleteSubtask && (
-				<div
-					className="ca-backdrop"
-					role="dialog"
-					aria-modal="true"
-					onMouseDown={(e) => {
-						if (e.target === e.currentTarget) setConfirmDeleteSubtask(null);
-					}}
-					style={{ zIndex: 3000 }}
-				>
-					<div className="ca-modal ca-modal-compact">
-						<div className="ca-header">
-							<div className="ca-header-left">
-								<div className="ca-header-icon">
-									<AlertTriangle size={20} />
-								</div>
-								<div className="ca-header-text">
-									<h3>Confirmar eliminación</h3>
-									<p className="ca-subtitle">Vas a eliminar: {confirmDeleteSubtask.name}</p>
-								</div>
-							</div>
-							<button className="ca-close" onClick={() => setConfirmDeleteSubtask(null)}>
-								<X size={15} />
-							</button>
-						</div>
-						<div className="ca-body">
-							<p>
-								¿Estás seguro que deseas eliminar esta subtarea? Esta acción no se puede deshacer.
-							</p>
-							<div className="ca-actions">
-								<button
-									className="btn btn-ghost"
-									onClick={() => setConfirmDeleteSubtask(null)}
-									disabled={deletingSubtask}
-								>
-									Cancelar
-								</button>
-								<button
-									className="btn btn-primary"
-									onClick={performDeleteSubtask}
-									disabled={deletingSubtask}
-								>
-									{deletingSubtask ? "Eliminando..." : "Eliminar"}
-								</button>
-							</div>
-						</div>
-					</div>
-				</div>
-			)}
-			<div className="section-header" onClick={() => setCollapsed(!collapsed)}>
-				<div className="section-title-group">
-					<ChevronDown size={16} className={`collapse-icon ${collapsed ? "collapsed" : ""}`} />
-					<span className={`section-icon section-icon-${variant}`}>{icon}</span>
-					<h2 className="section-title">{title}</h2>
-				</div>
-				<span className="section-count">{count} actividades</span>
-			</div>
-
-			<div className={`section-collapsible ${collapsed ? "collapsed" : ""}`}>
-				<div className="section-collapsible-inner">
-					{isEmpty ? (
-						<div className="section-empty">
-							<Inbox size={28} strokeWidth={1.5} />
-							<p>Aún no hay nada por aquí</p>
-						</div>
-					) : (
-						<>
-							<div className="table-header">
-								<span className="col-activity">Actividad</span>
-								<span className="col-duration">Duración estimada</span>
-								<span className="col-date">Fecha de finalización</span>
-								<span className="col-subtasks"># de subtareas</span>
-								<span className="col-action">Ver subtareas</span>
-							</div>
-							<div className="table-body">
-								{activities.map((activity) => {
-									const subtaskState = subtaskStateByActivity[activity.id];
-									const isExpanded = expandedActivityId === activity.id;
-									const items = subtaskState?.items ?? [];
-									const completedCount = items.filter((s) => s.status === "completed").length;
-									const totalCount = items.length || activity.subtask_count || 0;
-									const progressPercent =
-										totalCount > 0 ? Math.min((completedCount / totalCount) * 100, 100) : 0;
-
-									return (
-										<div key={activity.id} className="table-row-group">
-											<div className={`table-row ${isExpanded ? "table-row-active" : ""}`}>
-												<div className="col-activity">
-													<span className={`activity-tag tag-${variant}`}>{activity.title}</span>
-												</div>
-												<div className="col-duration">
-													<span className="badge badge-duration">
-														{formatHours(activity.total_estimated_hours)}
-													</span>
-												</div>
-												<div className="col-date">
-													<span className={`badge badge-date badge-date-${variant}`}>
-														{formatDate(activity.due_date)}
-													</span>
-												</div>
-												<div className="col-subtasks">
-													<div className="subtask-progress">
-														<div className="subtask-progress-bar">
-															<div
-																className="subtask-progress-fill"
-																style={{ width: `${progressPercent}%` }}
-															/>
-														</div>
-														<span className="subtask-progress-text">
-															{completedCount}/{totalCount}
-														</span>
-													</div>
-												</div>
-												<div className="col-action">
-													<button
-														type="button"
-														className={`btn-subtasks-toggle ${
-															isExpanded ? "btn-subtasks-toggle-open" : ""
-														}`}
-														aria-label="Ver subtareas"
-														onClick={() => void handleToggleSubtasks(activity)}
-														title={isExpanded ? "Ocultar subtareas" : "Ver subtareas"}
-													>
-														<span className="btn-subtasks-label">Ver subtareas</span>
-														<span
-															className={`btn-subtasks-caret ${
-																isExpanded ? "btn-subtasks-caret-open" : ""
-															}`}
-														>
-															▼
-														</span>
-													</button>
-													<button
-														type="button"
-														className="btn-row-action btn-row-delete"
-														aria-label="Eliminar actividad"
-														onClick={() => onDelete?.(activity.id, activity.title)}
-													>
-														<Trash2 size={14} />
-													</button>
-												</div>
-											</div>
-
-											{isExpanded && (
-												<div className="subtask-dropdown">
-													<div className="subtask-dropdown-toolbar">
-														{/* Solo mostramos el botón si NO es una sección de vencidas */}
-														{variant !== "overdue" && (
-															<button
-																type="button"
-																className="subtask-add-btn"
-																onClick={() => setActiveSubtaskManager(activity)}
-															>
-																<Plus size={14} />
-																Añadir subtarea
-															</button>
-														)}
-													</div>
-													{subtaskState?.loading && (
-														<div className="subtask-dropdown-loading">
-															<span className="subtask-spinner" />
-															<span>Cargando subtareas...</span>
-														</div>
-													)}
-													{!subtaskState?.loading && items.length === 0 && (
-														<div className="subtask-dropdown-empty">
-															<p>
-																{variant === "overdue"
-																	? "Esta actividad aún no tenía subtareas asignadas."
-																	: "Esta actividad aún no tiene subtareas asignadas."}
-															</p>
-														</div>
-													)}
-													{!subtaskState?.loading && items.length > 0 && (
-														<div className="subtask-rows">
-															{items.map((subtask) => {
-																const statusLabel =
-																	subtask.status === "completed"
-																		? "Completada"
-																		: subtask.status === "pending"
-																			? "Pendiente"
-																			: "En progreso";
-																return (
-																	<div
-																		key={subtask.id}
-																		className={`subtask-row subtask-row-${subtask.status}`}
-																	>
-																		<div className="subtask-main">
-																			<div className="subtask-checkbox">
-																				<input
-																					type="checkbox"
-																					checked={subtask.status === "completed"}
-																					onChange={() =>
-																						void handleToggleSubtaskStatus(activity.id, subtask)
-																					}
-																				/>
-																			</div>
-																			<span className="subtask-title">{subtask.name}</span>
-																		</div>
-																		<div className="subtask-icons">
-																			<button
-																				type="button"
-																				className="subtask-icon-button"
-																				onClick={() =>
-																					void handleEditSubtaskName(activity.id, subtask)
-																				}
-																				aria-label="Editar subtarea"
-																			>
-																				<Edit3 size={14} />
-																			</button>
-																			<button
-																				type="button"
-																				className="subtask-icon-button"
-																				onClick={() => requestDeleteSubtask(activity.id, subtask)}
-																				aria-label="Eliminar subtarea"
-																			>
-																				<Trash2 size={14} />
-																			</button>
-																		</div>
-																		<div className="subtask-status">
-																			<span
-																				className={`subtask-status-chip subtask-status-${subtask.status}`}
-																			>
-																				{statusLabel}
-																			</span>
-																		</div>
-																	</div>
-																);
-															})}
-														</div>
-													)}
-												</div>
-											)}
-										</div>
-									);
-								})}
-							</div>
-						</>
-					)}
-				</div>
-			</div>
-
-			{activeSubtaskManager && (
-				<SubtaskManagerModal
-					activityId={activeSubtaskManager.id}
-					activityTitle={activeSubtaskManager.title}
-					open={true}
-					onClose={() => {
-						const id = activeSubtaskManager.id;
-						setActiveSubtaskManager(null);
-						setSubtaskStateByActivity((prev) => ({
-							...prev,
-							[id]: prev[id]
-								? { ...prev[id], loading: true }
-								: { loading: true, error: null, items: [] },
-						}));
-						fetchSubtasks(id)
-							.then((items) => {
-								setSubtaskStateByActivity((prev) => ({
-									...prev,
-									[id]: { loading: false, error: null, items },
-								}));
-							})
-							.catch(() => {
-								setSubtaskStateByActivity((prev) => ({
-									...prev,
-									[id]: {
-										loading: false,
-										error: null,
-										items: prev[id]?.items ?? [],
-									},
-								}));
-							});
-					}}
-				/>
-			)}
-		</section>
 	);
 }

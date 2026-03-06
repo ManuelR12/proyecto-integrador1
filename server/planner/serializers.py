@@ -75,6 +75,8 @@ class ActivitySerializer(serializers.ModelSerializer):
 	subtask_count = serializers.SerializerMethodField()
 	subtasks = SubtaskSerializer(many=True, required=False)
 
+	description = serializers.CharField(required=False, allow_blank=True)
+
 	class Meta:
 		model = Activity
 		fields = [
@@ -137,22 +139,7 @@ class ActivitySerializer(serializers.ModelSerializer):
 	def get_subtask_count(self, obj) -> int:
 		return obj.subtasks.count()
 
-
-# Serializer used by TodayView — adds activity context to each subtask
-class TodaySubtaskSerializer(SubtaskSerializer):
-	activity = serializers.SerializerMethodField()
-	course_name = serializers.SerializerMethodField()
-
-	class Meta(SubtaskSerializer.Meta):
-		fields = [*SubtaskSerializer.Meta.fields, "activity", "course_name"]
-
-	def get_activity(self, obj) -> dict:
-		act = obj.activity_id  # ForeignKey named activity_id → related Activity object
-		return {"id": act.pk, "title": act.title}
-
-	def get_course_name(self, obj) -> str:
-		return obj.activity_id.course_name
-
+	#  Moved `create` method to ActivitySerializer to handle nested writes
 	def create(self, validated_data):
 		# Handle nested subtasks if provided
 		subtasks_data = validated_data.pop("subtasks", [])
@@ -184,6 +171,22 @@ class TodaySubtaskSerializer(SubtaskSerializer):
 			except Exception:
 				activity._client_total_estimated_hours = None
 		return activity
+
+
+# Serializer used by TodayView — adds activity context to each subtask
+class TodaySubtaskSerializer(SubtaskSerializer):
+	activity = serializers.SerializerMethodField()
+	course_name = serializers.SerializerMethodField()
+
+	class Meta(SubtaskSerializer.Meta):
+		fields = [*SubtaskSerializer.Meta.fields, "activity", "course_name"]
+
+	def get_activity(self, obj) -> dict:
+		act = obj.activity_id  # ForeignKey named activity_id → related Activity object
+		return {"id": act.pk, "title": act.title}
+
+	def get_course_name(self, obj) -> str:
+		return obj.activity_id.course_name
 
 
 # Note: a single SubtaskSerializer is defined above for nested use in ActivitySerializer.

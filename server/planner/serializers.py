@@ -2,7 +2,7 @@ from datetime import date
 
 from rest_framework import serializers
 
-from .models import Activity, Subtask, User
+from .models import Activity, Subject, Subtask, User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -169,3 +169,15 @@ class ActivitySerializer(serializers.ModelSerializer):
 
 
 # Note: a single SubtaskSerializer is defined above for nested use in ActivitySerializer.
+
+
+class SubjectSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Subject
+		fields = ["id", "name", "creation_date"]
+		read_only_fields = ["id", "creation_date"]
+
+	def validate_name(self, value):
+		if not value.strip():
+			raise serializers.ValidationError("Subject name cannot be empty.")
+		return value.strip()

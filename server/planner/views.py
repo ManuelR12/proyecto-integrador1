@@ -626,3 +626,17 @@ class SubjectViewSet(viewsets.ModelViewSet):
 	)
 	def retrieve(self, request, *args, **kwargs):
 		return super().retrieve(request, *args, **kwargs)
+
+	@extend_schema(
+		summary="Create subject",
+		description="Create a new academic subject.",
+		request=SubjectSerializer,
+		responses={201: SubjectSerializer},
+	)
+	def create(self, request, *args, **kwargs):
+		serializer = self.get_serializer(data=request.data)
+		if not serializer.is_valid():
+			return Response(serializer.errors, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+		serializer.save()
+		return Response(serializer.data, status=status.HTTP_201_CREATED)

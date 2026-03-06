@@ -62,6 +62,22 @@ function App() {
 						</ProtectedRoute>
 					}
 				/>
+				<Route
+					path="/organizacion"
+					element={
+						<ProtectedRoute>
+							<DashboardPage />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/progreso"
+					element={
+						<ProtectedRoute>
+							<DashboardPage />
+						</ProtectedRoute>
+					}
+				/>
 
 				{/* Cualquier ruta desconocida va a la landing */}
 				<Route path="*" element={<Navigate to="/" replace />} />

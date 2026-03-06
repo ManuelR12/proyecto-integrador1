@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
 	CalendarCheck,
 	AlertTriangle,
@@ -50,7 +51,10 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ onLogout }: DashboardProps) {
-	const [activeNav, setActiveNav] = useState("today");
+	const { pathname } = useLocation();
+	const navigate = useNavigate();
+	const activeNav =
+		pathname === "/organizacion" ? "org" : pathname === "/progreso" ? "progress" : "today";
 	const [searchOpen, setSearchOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showWave, setShowWave] = useState(false);
@@ -471,21 +475,21 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 				<nav className="sidebar-nav">
 					<button
 						className={`nav-item ${activeNav === "today" ? "active" : ""}`}
-						onClick={() => setActiveNav("today")}
+						onClick={() => navigate("/hoy")}
 					>
 						<CalendarCheck size={18} />
 						<span>Hoy</span>
 					</button>
 					<button
 						className={`nav-item ${activeNav === "progress" ? "active" : ""}`}
-						onClick={() => setActiveNav("progress")}
+						onClick={() => navigate("/progreso")}
 					>
 						<BarChart3 size={18} />
 						<span>Mi progreso</span>
 					</button>
 					<button
 						className={`nav-item ${activeNav === "org" ? "active" : ""}`}
-						onClick={() => setActiveNav("org")}
+						onClick={() => navigate("/organizacion")}
 					>
 						<Users size={18} />
 						<span>Organización</span>

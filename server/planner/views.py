@@ -8,7 +8,7 @@ from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schem
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -18,6 +18,7 @@ from .serializers import (
 	SubjectSerializer,
 	SubtaskSerializer,
 	TodaySubtaskSerializer,
+	UserRegistrationSerializer,
 	UserSerializer,
 )
 
@@ -33,6 +34,23 @@ logger = logging.getLogger(__name__)
 )
 def health_check():
 	return Response({"status": "ok"})
+
+
+class RegisterView(APIView):
+	permission_classes = [AllowAny]
+
+	@extend_schema(
+		summary="Register a new user",
+		description="Create a new user account.",
+		request=UserRegistrationSerializer,
+		responses={201: UserSerializer},
+	)
+	def post(self, request):
+		serializer = UserRegistrationSerializer(data=request.data)
+		if serializer.is_valid():
+			user = serializer.save()
+			return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class MeView(APIView):

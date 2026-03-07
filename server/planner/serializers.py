@@ -48,8 +48,7 @@ class SubtaskSerializer(serializers.ModelSerializer):
 
 		if "target_date" in attrs:
 			target_date = attrs["target_date"]
-			if target_date < date.today():
-				errors["target_date"] = "Target date cannot be earlier than today"
+			# No past-date restriction — users may create/edit overdue subtasks
 
 			activity = self.context.get("activity")
 			# Only enforce the due-date ceiling when the activity itself is not already overdue.
@@ -113,9 +112,7 @@ class ActivitySerializer(serializers.ModelSerializer):
 				errors["status"] = f"Invalid status type. Must be one of: {allowed_statuses}"
 
 		if "due_date" in attrs:
-			due_date = attrs.get("due_date")
-			if due_date < date.today():
-				errors["due_date"] = "Due date cannot be earlier than today"
+			pass  # No past-date restriction — users may create overdue activities
 
 		if errors:
 			raise serializers.ValidationError({"errors": errors})

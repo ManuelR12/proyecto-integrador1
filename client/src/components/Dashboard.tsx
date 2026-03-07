@@ -195,8 +195,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 				return {
 					title: "Organización",
 					TitleIcon: Folder,
-					tipText:
-						"Agrupamos tus actividades por materia para darte una vista clara del trimestre.",
+					tipText: "Organiza tus actividades por materia y controla tu carga de trabajo.",
 				};
 			case "progress":
 				return {

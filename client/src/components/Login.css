@@ -670,7 +670,7 @@
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 0.1em;
-	color: #8a87ac;
+	color: #c0bce0;
 	margin-bottom: 0.48rem;
 }
 
@@ -749,6 +749,14 @@
 	padding-right: 3rem;
 }
 
+/* Hide browser-native password reveal button (Edge / IE / Chrome) */
+.lp-field__input--pw::-ms-reveal,
+.lp-field__input--pw::-ms-clear,
+.lp-field__input--pw::-webkit-contacts-auto-fill-button,
+.lp-field__input--pw::-webkit-credentials-auto-fill-button {
+	display: none !important;
+}
+
 /* Password toggle */
 .lp-pw-toggle {
 	position: absolute;
@@ -775,33 +783,6 @@
 .lp-pw-toggle:hover {
 	color: var(--lp-accent);
 	background: rgba(139, 112, 255, 0.1);
-}
-
-.lp-pw-toggle__icon {
-	position: absolute;
-	transition:
-		opacity 0.22s ease,
-		transform 0.22s ease;
-}
-
-.lp-pw-toggle__icon--show {
-	opacity: 0;
-	transform: scale(0.6) rotate(-12deg);
-}
-
-.lp-pw-toggle__icon--hide {
-	opacity: 1;
-	transform: scale(1) rotate(0deg);
-}
-
-.lp-pw-toggle--on .lp-pw-toggle__icon--show {
-	opacity: 1;
-	transform: scale(1) rotate(0deg);
-}
-
-.lp-pw-toggle--on .lp-pw-toggle__icon--hide {
-	opacity: 0;
-	transform: scale(0.6) rotate(12deg);
 }
 
 /* ══════════════════════════════════════════════════
@@ -896,6 +877,142 @@
 		bottom: 0;
 		opacity: 0.18;
 	}
+}
+
+/* ══════════════════════════════════════════════════
+   LIGHT THEME — Login overrides
+══════════════════════════════════════════════════ */
+
+[data-theme="light"] .lp-scene {
+	--lp-bg: #f0edfb;
+	--lp-accent: #7c6ceb;
+	--lp-accent-light: #6d5fdb;
+	--lp-accent-glow: rgba(124, 108, 235, 0.2);
+	--lp-card-bg: rgba(255, 255, 255, 0.9);
+	--lp-border: rgba(124, 108, 235, 0.16);
+	--lp-border-focus: rgba(124, 108, 235, 0.48);
+	--lp-text: #1e1a33;
+	--lp-text-sub: #4a4568;
+	--lp-text-muted: #9b8eb8;
+	--lp-input-bg: rgba(124, 108, 235, 0.04);
+	--lp-input-focus: rgba(124, 108, 235, 0.07);
+}
+
+/* Pastel orbs for light mode */
+[data-theme="light"] .lp-orb--purple {
+	background: radial-gradient(circle, rgba(167, 139, 250, 0.18) 0%, transparent 65%);
+}
+
+[data-theme="light"] .lp-orb--indigo {
+	background: radial-gradient(circle, rgba(139, 92, 246, 0.13) 0%, transparent 65%);
+}
+
+[data-theme="light"] .lp-orb--violet {
+	background: radial-gradient(circle, rgba(196, 181, 253, 0.15) 0%, transparent 65%);
+}
+
+[data-theme="light"] .lp-orb--pink {
+	background: radial-gradient(circle, rgba(221, 214, 254, 0.22) 0%, transparent 65%);
+}
+
+/* Stars invisible in light mode */
+[data-theme="light"] .lp-stars {
+	opacity: 0;
+}
+
+/* Rings more subtle */
+[data-theme="light"] .lp-ring {
+	border-color: rgba(124, 108, 235, 0.1);
+}
+
+[data-theme="light"] .lp-ring--2 {
+	border-color: rgba(124, 108, 235, 0.06);
+}
+
+/* Lighter vignette */
+[data-theme="light"] .lp-bg__vignette {
+	background:
+		linear-gradient(to bottom, rgba(240, 237, 251, 0.45) 0%, transparent 30%),
+		linear-gradient(to top, rgba(232, 226, 250, 0.5) 0%, transparent 35%),
+		radial-gradient(ellipse 35% 100% at 0% 50%, rgba(230, 224, 250, 0.5) 0%, transparent 65%),
+		radial-gradient(ellipse 40% 100% at 100% 50%, rgba(230, 224, 250, 0.6) 0%, transparent 65%);
+}
+
+/* Blend illustration into light background */
+[data-theme="light"] .lp-bg__illustration {
+	opacity: 0.45;
+	mix-blend-mode: multiply;
+	mask-image: radial-gradient(
+		ellipse 82% 96% at 52% 100%,
+		black 8%,
+		rgba(0, 0, 0, 0.55) 30%,
+		rgba(0, 0, 0, 0.2) 52%,
+		rgba(0, 0, 0, 0.04) 68%,
+		transparent 82%
+	);
+	-webkit-mask-image: radial-gradient(
+		ellipse 82% 96% at 52% 100%,
+		black 8%,
+		rgba(0, 0, 0, 0.55) 30%,
+		rgba(0, 0, 0, 0.2) 52%,
+		rgba(0, 0, 0, 0.04) 68%,
+		transparent 82%
+	);
+}
+
+/* Floating pills — light glassmorphism */
+[data-theme="light"] .lp-pill {
+	background: rgba(255, 255, 255, 0.78);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border-color: rgba(124, 108, 235, 0.18);
+	color: #4a4568;
+}
+
+/* Feature cards — light glassmorphism */
+[data-theme="light"] .lp-feat-card {
+	background: rgba(255, 255, 255, 0.85);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border-color: rgba(124, 108, 235, 0.15);
+	box-shadow: 0 8px 32px rgba(124, 108, 235, 0.1);
+}
+
+[data-theme="light"] .lp-field__label {
+	color: #3d3070;
+}
+
+[data-theme="light"] .lp-feat-card__body strong {
+	color: #1e1a33;
+}
+
+[data-theme="light"] .lp-feat-card__body span {
+	color: #7a728f;
+}
+
+/* Card — clean white with elevated shadow */
+[data-theme="light"] .lp-card {
+	box-shadow:
+		0 0 0 1px rgba(124, 108, 235, 0.1),
+		0 28px 60px rgba(100, 80, 220, 0.12),
+		0 8px 24px rgba(100, 80, 220, 0.06);
+}
+
+[data-theme="light"] .lp-card__shine {
+	background: linear-gradient(90deg, transparent, rgba(124, 108, 235, 0.25), transparent);
+}
+
+/* Field label on light */
+[data-theme="light"] .lp-field__label {
+	color: #6258a0;
+}
+
+/* Theme toggle button in login — top-right corner */
+.lp-theme-toggle-btn {
+	position: absolute;
+	top: 1.5rem;
+	right: 1.5rem;
+	z-index: 10;
 }
 
 @media (max-width: 480px) {

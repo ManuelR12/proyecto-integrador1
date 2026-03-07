@@ -25,7 +25,10 @@ import {
 	Trash2,
 	Folder,
 	BookOpen,
+	Palette,
 } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
+import { useTheme } from "../hooks/useTheme";
 import lumaLogo from "../assets/luma.png";
 import {
 	fetchMe,
@@ -56,6 +59,7 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ onLogout }: DashboardProps) {
+	const { isDark } = useTheme();
 	const { pathname } = useLocation();
 	const navigate = useNavigate();
 	const activeNav =
@@ -84,7 +88,9 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 	} | null>(null);
 	const [createOpen, setCreateOpen] = useState(false);
 	const [prefilledSubject, setPrefilledSubject] = useState("");
-	const [pendingExpandSubject, setPendingExpandSubject] = useState<string | null>(null);
+	const [pendingExpandSubject, setPendingExpandSubject] = useState<{ subject: string } | null>(
+		null,
+	);
 	const [subjectModal, setSubjectModal] = useState<{
 		mode: "add" | "rename";
 		current?: string;
@@ -371,12 +377,16 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 								onClick={(e) => e.stopPropagation()}
 								style={{
 									position: "relative",
-									background: "linear-gradient(155deg,#1a0e0e 0%,#110909 55%,#090404 100%)",
+									background: isDark
+										? "linear-gradient(155deg,#1a0e0e 0%,#110909 55%,#090404 100%)"
+										: "linear-gradient(155deg,#fff5f5 0%,#fff0f0 55%,#ffe8e8 100%)",
 									border: "1px solid rgba(248,113,113,0.2)",
 									borderRadius: "16px",
 									width: "100%",
 									maxWidth: "360px",
-									boxShadow: "0 25px 60px rgba(0,0,0,0.65), inset 0 0 60px rgba(239,68,68,0.03)",
+									boxShadow: isDark
+										? "0 25px 60px rgba(0,0,0,0.65), inset 0 0 60px rgba(239,68,68,0.03)"
+										: "0 25px 60px rgba(0,0,0,0.12), inset 0 0 30px rgba(239,68,68,0.02)",
 									animation: "fadeInScale 0.22s cubic-bezier(0.16,1,0.3,1)",
 									textAlign: "center",
 									padding: "32px 28px 24px",
@@ -405,7 +415,12 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 									<Trash2 size={22} color="#f87171" />
 								</div>
 								<p
-									style={{ margin: "0 0 8px", fontSize: "17px", fontWeight: 700, color: "#f1f5f9" }}
+									style={{
+										margin: "0 0 8px",
+										fontSize: "17px",
+										fontWeight: 700,
+										color: isDark ? "#f1f5f9" : "#1e1a33",
+									}}
 								>
 									Confirmar eliminación
 								</p>
@@ -413,13 +428,15 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 									style={{
 										margin: "0 0 24px",
 										fontSize: "13px",
-										color: "#94a3b8",
+										color: isDark ? "#94a3b8" : "#6b52b5",
 										lineHeight: 1.6,
 									}}
 								>
 									Se eliminará permanentemente{" "}
-									<strong style={{ color: "#e2e8f0" }}>"{confirmDelete.title}"</strong>. Esta acción
-									no se puede deshacer.
+									<strong style={{ color: isDark ? "#e2e8f0" : "#1e1a33" }}>
+										"{confirmDelete.title}"
+									</strong>
+									. Esta acción no se puede deshacer.
 								</p>
 								<div style={{ display: "flex", gap: "10px" }}>
 									<button
@@ -454,12 +471,12 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 											flex: 1,
 											padding: "11px 14px",
 											borderRadius: "8px",
-											border: "1px solid #334155",
+											border: isDark ? "1px solid #334155" : "1px solid rgba(239,68,68,0.3)",
 											cursor: "pointer",
 											fontSize: "13px",
 											fontWeight: 600,
 											background: "transparent",
-											color: "#94a3b8",
+											color: isDark ? "#94a3b8" : "#9a3a3a",
 										}}
 									>
 										Cancelar
@@ -568,6 +585,15 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 					<div className="capacity-bar">
 						<div className="capacity-fill" style={{ width: `${capacityPercent}%` }} />
 					</div>
+				</div>
+
+				{/* Theme toggle */}
+				<div className="sidebar-theme-row theme-toggle-wrap">
+					<span className="sidebar-theme-label">
+						<Palette size={14} strokeWidth={1.75} />
+						Apariencia
+					</span>
+					<ThemeToggle />
 				</div>
 
 				{/* Logout */}
@@ -687,7 +713,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 										if (activeNav === "org") {
 											const subjectName =
 												resp.course_name ?? apiPayload.course_name ?? payload.subject;
-											if (subjectName) setPendingExpandSubject(subjectName);
+											if (subjectName) setPendingExpandSubject({ subject: subjectName });
 										}
 										setCreateOpen(false);
 										toast.success("Actividad creada");

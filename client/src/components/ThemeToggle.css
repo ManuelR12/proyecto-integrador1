@@ -1,0 +1,239 @@
+/* ══════════════════════════════════════════════
+   Theme Toggle — Moon/Sun animated pill switch
+   ══════════════════════════════════════════════ */
+
+.tt {
+	--tt-w: 56px;
+	--tt-h: 28px;
+	--tt-thumb: 22px;
+	--tt-gap: 3px;
+	--tt-travel: calc(var(--tt-w) - var(--tt-thumb) - var(--tt-gap) * 2);
+
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	width: var(--tt-w);
+	height: var(--tt-h);
+	border: none;
+	padding: 0;
+	background: none;
+	cursor: pointer;
+	flex-shrink: 0;
+	border-radius: 100px;
+}
+
+.tt:focus-visible {
+	outline: 2px solid rgba(124, 108, 235, 0.55);
+	outline-offset: 3px;
+	border-radius: 100px;
+}
+
+/* ── Track ── */
+.tt__track {
+	position: absolute;
+	inset: 0;
+	border-radius: 100px;
+	overflow: hidden;
+	transition:
+		background 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+		border-color 0.5s ease,
+		box-shadow 0.5s ease;
+}
+
+.tt--dark .tt__track {
+	background: linear-gradient(135deg, #2d1f6e 0%, #1a1050 100%);
+	border: 1.5px solid rgba(139, 112, 255, 0.38);
+	box-shadow:
+		inset 0 1px 4px rgba(0, 0, 0, 0.35),
+		0 0 14px rgba(139, 112, 255, 0.18);
+}
+
+.tt--light .tt__track {
+	background: linear-gradient(135deg, #fde68a 0%, #f59e0b 100%);
+	border: 1.5px solid rgba(245, 158, 11, 0.55);
+	box-shadow:
+		inset 0 1px 4px rgba(0, 0, 0, 0.08),
+		0 0 14px rgba(251, 191, 36, 0.28);
+}
+
+/* ── Stars (dark) ── */
+.tt__stars {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	transition: opacity 0.4s ease;
+}
+
+.tt--dark .tt__stars {
+	opacity: 1;
+}
+
+.tt--light .tt__stars {
+	opacity: 0;
+}
+
+.tt__star {
+	position: absolute;
+	border-radius: 50%;
+	background: #fff;
+	animation: tt-twinkle 2.2s ease-in-out infinite;
+}
+
+.tt__star:nth-child(1) {
+	width: 3px;
+	height: 3px;
+	top: 5px;
+	right: 9px;
+	animation-delay: 0s;
+}
+
+.tt__star:nth-child(2) {
+	width: 2px;
+	height: 2px;
+	top: 15px;
+	right: 18px;
+	animation-delay: 0.7s;
+}
+
+.tt__star:nth-child(3) {
+	width: 2px;
+	height: 2px;
+	top: 8px;
+	right: 5px;
+	animation-delay: 1.3s;
+}
+
+@keyframes tt-twinkle {
+	0%,
+	100% {
+		opacity: 0.9;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.25;
+		transform: scale(0.45);
+	}
+}
+
+/* ── Clouds (light) ── */
+.tt__clouds {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	transition: opacity 0.4s ease;
+}
+
+.tt--dark .tt__clouds {
+	opacity: 0;
+}
+
+.tt--light .tt__clouds {
+	opacity: 1;
+}
+
+.tt__cloud {
+	position: absolute;
+	background: rgba(255, 255, 255, 0.62);
+	border-radius: 100px;
+}
+
+.tt__cloud:nth-child(1) {
+	width: 15px;
+	height: 5px;
+	top: 7px;
+	right: 6px;
+}
+
+.tt__cloud:nth-child(2) {
+	width: 9px;
+	height: 4px;
+	top: 15px;
+	right: 11px;
+}
+
+/* ── Thumb ── */
+.tt__thumb {
+	position: absolute;
+	top: var(--tt-gap);
+	left: var(--tt-gap);
+	width: var(--tt-thumb);
+	height: var(--tt-thumb);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition:
+		transform 0.48s cubic-bezier(0.34, 1.56, 0.64, 1),
+		background 0.48s ease,
+		box-shadow 0.48s ease;
+	will-change: transform;
+	overflow: hidden;
+}
+
+.tt--dark .tt__thumb {
+	transform: translateX(0);
+	background: linear-gradient(135deg, #b09fff 0%, #7c6ceb 100%);
+	box-shadow:
+		0 2px 10px rgba(124, 108, 235, 0.55),
+		inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.tt--light .tt__thumb {
+	transform: translateX(var(--tt-travel));
+	background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+	box-shadow:
+		0 2px 10px rgba(245, 158, 11, 0.45),
+		inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+/* ── Icons ── */
+.tt__icon {
+	position: absolute;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition:
+		opacity 0.3s ease,
+		transform 0.48s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tt__icon--moon {
+	color: #e0d7ff;
+}
+
+.tt--dark .tt__icon--moon {
+	opacity: 1;
+	transform: rotate(0deg) scale(1);
+}
+
+.tt--light .tt__icon--moon {
+	opacity: 0;
+	transform: rotate(-90deg) scale(0.4);
+}
+
+.tt__icon--sun {
+	color: #d97706;
+}
+
+.tt--dark .tt__icon--sun {
+	opacity: 0;
+	transform: rotate(90deg) scale(0.4);
+}
+
+.tt--light .tt__icon--sun {
+	opacity: 1;
+	transform: rotate(0deg) scale(1);
+}
+
+/* ── Hover glow ── */
+.tt:hover .tt__track {
+	box-shadow:
+		inset 0 1px 4px rgba(0, 0, 0, 0.2),
+		0 0 20px rgba(139, 112, 255, 0.3);
+}
+
+.tt--light:hover .tt__track {
+	box-shadow:
+		inset 0 1px 4px rgba(0, 0, 0, 0.06),
+		0 0 20px rgba(251, 191, 36, 0.42);
+}

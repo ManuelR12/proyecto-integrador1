@@ -199,3 +199,29 @@ class SubjectSerializer(serializers.ModelSerializer):
 		if not value.strip():
 			raise serializers.ValidationError("Subject name cannot be empty.")
 		return value.strip()
+
+
+class UserRegistrationSerializer(serializers.Serializer):
+	username = serializers.CharField(max_length=150)
+	email = serializers.EmailField(required=False, allow_blank=True, default="")
+	password = serializers.CharField(write_only=True, min_length=8)
+	password_confirm = serializers.CharField(write_only=True)
+
+	def validate_username(self, value):
+		if User.objects.filter(username=value).exists():
+			raise serializers.ValidationError("Este nombre de usuario ya está en uso.")
+		return value
+
+	def validate(self, attrs):
+		if attrs["password"] != attrs["password_confirm"]:
+			raise serializers.ValidationError({"password_confirm": "Las contraseñas no coinciden."})
+		return attrs
+
+	def create(self, validated_data):
+		validated_data.pop("password_confirm")
+		user = User.objects.create_user(
+			username=validated_data["username"],
+			email=validated_data.get("email", ""),
+			password=validated_data["password"],
+		)
+		return user

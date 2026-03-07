@@ -1,15 +1,13 @@
-﻿import React, { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
 	User,
 	Lock,
+	Mail,
 	Loader2,
 	ArrowRight,
 	Eye,
 	EyeOff,
-	Sun,
-	CloudSun,
-	Moon,
 	CalendarDays,
 	TrendingUp,
 } from "lucide-react";
@@ -20,53 +18,70 @@ import lumaLogoFull from "../assets/luma.png";
 import heroIllustration from "../assets/login.png";
 import ThemeToggle from "./ThemeToggle";
 
-interface LoginProps {
-	onLoginSuccess: (token: string) => void;
-}
-
-export default function Login({ onLoginSuccess }: LoginProps) {
-	const [username, setUsername] = useState("");
-	const [password, setPassword] = useState("");
+export default function Register() {
+	const navigate = useNavigate();
+	const [form, setForm] = useState({
+		username: "",
+		email: "",
+		password: "",
+		passwordConfirm: "",
+	});
 	const [isLoading, setIsLoading] = useState(false);
 	const [showPassword, setShowPassword] = useState(false);
+	const [showConfirm, setShowConfirm] = useState(false);
 	const [cardState, setCardState] = useState<"idle" | "success" | "error">("idle");
 
-	const greeting = useMemo(() => {
-		const hour = new Date().getHours();
-		if (hour >= 5 && hour < 12) return { text: "Buenos días", Icon: Sun };
-		if (hour >= 12 && hour < 19) return { text: "Buenas tardes", Icon: CloudSun };
-		return { text: "Buenas noches", Icon: Moon };
-	}, []);
+	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
-		if (!username.trim() || !password.trim()) {
-			toast.error("Por favor, completa todos los campos para continuar.");
+		if (!form.username.trim() || !form.password.trim() || !form.passwordConfirm.trim()) {
+			toast.error("Por favor, completa los campos obligatorios.");
+			return;
+		}
+		if (form.password !== form.passwordConfirm) {
+			toast.error("Las contraseñas no coinciden.");
+			setCardState("error");
 			return;
 		}
 
 		setIsLoading(true);
 		try {
-			const response = await client.post("/api/token/", { username, password });
-			const { access, refresh } = response.data as { access: string; refresh: string };
+			await client.post("/register/", {
+				username: form.username,
+				email: form.email,
+				password: form.password,
+				password_confirm: form.passwordConfirm,
+			});
 
+			// Auto-login after successful registration
+			const tokenRes = await client.post("/api/token/", {
+				username: form.username,
+				password: form.password,
+			});
+			const { access, refresh } = tokenRes.data as { access: string; refresh: string };
 			localStorage.setItem("access_token", access);
 			localStorage.setItem("refresh_token", refresh);
 			client.defaults.headers.common["Authorization"] = `Bearer ${access}`;
 
 			setCardState("success");
-			setIsLoading(false);
-			toast.success("Bienvenido de nuevo.");
-			setTimeout(() => onLoginSuccess(access), 700);
+			toast.success("¡Cuenta creada! Bienvenido.");
+			setTimeout(() => navigate("/hoy"), 700);
 		} catch (error: unknown) {
-			const status =
+			const errResponse =
 				typeof error === "object" && error !== null && "response" in error
-					? (error as { response?: { status?: number } }).response?.status
+					? (error as { response?: { data?: unknown; status?: number } }).response
 					: undefined;
 
-			if (status === 401) {
-				toast.error("Usuario o contraseña incorrectos.");
+			const data = errResponse?.data;
+			if (data && typeof data === "object") {
+				const messages = Object.values(data as Record<string, unknown>)
+					.flat()
+					.join(" ");
+				toast.error(messages || "No se pudo crear la cuenta.");
 			} else {
 				toast.error("Error de conexión. Intenta más tarde.");
 			}
@@ -75,16 +90,14 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 		}
 	};
 
-	const { Icon: GreetingIcon } = greeting;
-
 	return (
 		<div className="lp-scene">
-			{/* ── Theme toggle — top-right corner ── */}
+			{/* ── Theme toggle ── */}
 			<div className="lp-theme-toggle-btn">
 				<ThemeToggle />
 			</div>
 
-			{/* ── Background atmospheric layer ── */}
+			{/* ── Background ── */}
 			<div className="lp-bg" aria-hidden="true">
 				<div className="lp-orb lp-orb--purple" />
 				<div className="lp-orb lp-orb--indigo" />
@@ -97,7 +110,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 				<div className="lp-bg__vignette" />
 			</div>
 
-			{/* ── Corner pills ── */}
+			{/* ── Pills ── */}
 			<div className="lp-pill lp-pill--tr" aria-hidden="true">
 				<span className="lp-pill__dot" />
 				Actividades organizadas
@@ -135,7 +148,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 				</div>
 			</div>
 
-			{/* ── Login card ── */}
+			{/* ── Register card ── */}
 			<div
 				className={`lp-card${cardState !== "idle" ? ` lp-card--${cardState}` : ""}`}
 				onAnimationEnd={() => {
@@ -147,37 +160,29 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 				<img src={lumaLogoFull} alt="Luma" className="lp-card__logo" />
 
 				<header className="lp-card__header">
-					<p className="lp-greeting">
-						<GreetingIcon
-							className="lp-greeting__icon"
-							size={14}
-							strokeWidth={1.5}
-							aria-hidden="true"
-						/>
-						{greeting.text}
-					</p>
 					<h1 className="lp-card__title">
-						Nos alegra verte
+						Crea tu cuenta
 						<br />
-						de nuevo
+						hoy mismo
 					</h1>
-					<p className="lp-card__subtitle">Ingresa tus datos y retoma donde lo dejaste.</p>
+					<p className="lp-card__subtitle">Empieza a planificar en segundos.</p>
 				</header>
 
 				<form onSubmit={handleSubmit} className="lp-form" noValidate>
 					<div className="lp-field">
-						<label className="lp-field__label" htmlFor="username">
-							Usuario
+						<label className="lp-field__label" htmlFor="reg-username">
+							Usuario *
 						</label>
 						<div className="lp-field__wrap">
 							<User className="lp-field__icon" size={16} strokeWidth={1.5} aria-hidden="true" />
 							<input
-								id="username"
+								id="reg-username"
+								name="username"
 								type="text"
 								className="lp-field__input"
 								placeholder="Tu usuario"
-								value={username}
-								onChange={(e) => setUsername(e.target.value)}
+								value={form.username}
+								onChange={handleChange}
 								disabled={isLoading}
 								autoComplete="username"
 							/>
@@ -185,25 +190,41 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 					</div>
 
 					<div className="lp-field">
-						<div className="lp-field__label-row">
-							<label className="lp-field__label" htmlFor="password">
-								Contraseña
-							</label>
-							<a href="#" className="lp-field__forgot">
-								¿Olvidaste tu contraseña?
-							</a>
+						<label className="lp-field__label" htmlFor="reg-email">
+							Email <span style={{ fontWeight: 400, opacity: 0.6 }}>(opcional)</span>
+						</label>
+						<div className="lp-field__wrap">
+							<Mail className="lp-field__icon" size={16} strokeWidth={1.5} aria-hidden="true" />
+							<input
+								id="reg-email"
+								name="email"
+								type="email"
+								className="lp-field__input"
+								placeholder="tu@email.com"
+								value={form.email}
+								onChange={handleChange}
+								disabled={isLoading}
+								autoComplete="email"
+							/>
 						</div>
+					</div>
+
+					<div className="lp-field">
+						<label className="lp-field__label" htmlFor="reg-password">
+							Contraseña *
+						</label>
 						<div className="lp-field__wrap">
 							<Lock className="lp-field__icon" size={16} strokeWidth={1.5} aria-hidden="true" />
 							<input
-								id="password"
+								id="reg-password"
+								name="password"
 								type={showPassword ? "text" : "password"}
 								className="lp-field__input lp-field__input--pw"
-								placeholder="••••••••"
-								value={password}
-								onChange={(e) => setPassword(e.target.value)}
+								placeholder="Mínimo 8 caracteres"
+								value={form.password}
+								onChange={handleChange}
 								disabled={isLoading}
-								autoComplete="current-password"
+								autoComplete="new-password"
 							/>
 							<button
 								type="button"
@@ -221,12 +242,45 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 						</div>
 					</div>
 
+					<div className="lp-field">
+						<label className="lp-field__label" htmlFor="reg-confirm">
+							Confirmar contraseña *
+						</label>
+						<div className="lp-field__wrap">
+							<Lock className="lp-field__icon" size={16} strokeWidth={1.5} aria-hidden="true" />
+							<input
+								id="reg-confirm"
+								name="passwordConfirm"
+								type={showConfirm ? "text" : "password"}
+								className="lp-field__input lp-field__input--pw"
+								placeholder="Repite tu contraseña"
+								value={form.passwordConfirm}
+								onChange={handleChange}
+								disabled={isLoading}
+								autoComplete="new-password"
+							/>
+							<button
+								type="button"
+								className="lp-pw-toggle"
+								onClick={() => setShowConfirm((v) => !v)}
+								tabIndex={-1}
+								aria-label={showConfirm ? "Ocultar contraseña" : "Mostrar contraseña"}
+							>
+								{showConfirm ? (
+									<EyeOff size={16} strokeWidth={1.5} />
+								) : (
+									<Eye size={16} strokeWidth={1.5} />
+								)}
+							</button>
+						</div>
+					</div>
+
 					<button type="submit" className="lp-btn" disabled={isLoading}>
 						{isLoading ? (
 							<Loader2 className="lp-btn__spinner" size={18} aria-label="Cargando" />
 						) : (
 							<>
-								<span>Iniciar sesión</span>
+								<span>Crear cuenta</span>
 								<ArrowRight size={15} aria-hidden="true" />
 							</>
 						)}
@@ -234,9 +288,9 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 				</form>
 
 				<footer className="lp-card__footer">
-					¿Primera vez por aquí?{" "}
-					<Link to="/registro" className="lp-card__signup">
-						Crea una cuenta
+					¿Ya tienes una cuenta?{" "}
+					<Link to="/login" className="lp-card__signup">
+						Inicia sesión
 					</Link>
 				</footer>
 			</div>

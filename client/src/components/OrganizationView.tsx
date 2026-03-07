@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
 	CalendarClock,
@@ -21,6 +21,7 @@ import "./Dashboard.css";
 import { formatDate, daysUntil } from "./dashboardUtils";
 import { EditActivityForm, SubjectFormModal } from "./OrgModals";
 import SubtaskManagerModal from "./SubtaskManagerModal";
+import { useTheme } from "../hooks/useTheme";
 
 interface OrgViewProps {
 	activities: Activity[];
@@ -33,7 +34,7 @@ interface OrgViewProps {
 	onOpenCreate: (subject?: string) => void;
 	activeFilters: string[];
 	searchQuery: string;
-	expandSubject?: string | null;
+	expandSubject?: { subject: string } | null;
 }
 
 export default function OrganizationView({
@@ -49,11 +50,12 @@ export default function OrganizationView({
 	searchQuery,
 	expandSubject,
 }: OrgViewProps) {
+	const { isDark } = useTheme();
 	const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
 
 	useEffect(() => {
-		if (expandSubject) {
-			setExpandedSubject(expandSubject);
+		if (expandSubject?.subject) {
+			setExpandedSubject(expandSubject.subject);
 		}
 	}, [expandSubject]);
 	const [expandedActivity, setExpandedActivity] = useState<number | null>(null);
@@ -156,6 +158,75 @@ export default function OrganizationView({
 		completed: "Completada",
 	};
 
+	const ov = {
+		// Empty state
+		emptyClr: isDark ? "#94a3b8" : "#7a62c9",
+		// Subject cards
+		subBg: isDark ? "#1e293b" : "rgba(255,255,255,0.85)",
+		subBdr: isDark ? "#334155" : "rgba(124,92,255,0.2)",
+		subBdrOpen: isDark ? "rgba(139,92,246,0.4)" : "rgba(124,92,255,0.5)",
+		subHdBg: isDark ? "rgba(139,92,246,0.08)" : "rgba(124,92,255,0.06)",
+		subTitle: isDark ? "#f1f5f9" : "#1e1a33",
+		subMeta: isDark ? "#64748b" : "#9580c9",
+		badgeBg: isDark ? "#0f172a" : "rgba(124,92,255,0.07)",
+		badgeClr: isDark ? "#94a3b8" : "#6b52b5",
+		subBodyBdr: isDark ? "#334155" : "rgba(124,92,255,0.15)",
+		iconClr: isDark ? "#475569" : "#b8a8e0",
+		// Empty-subject content
+		emptySubClr: isDark ? "#64748b" : "#9580c9",
+		emptyBtnBdr: isDark ? "#475569" : "rgba(124,92,255,0.3)",
+		emptyBtnClr: isDark ? "#94a3b8" : "#7a62c9",
+		// Activity cards
+		actBg: isDark ? "#0c1628" : "rgba(255,255,255,0.8)",
+		actBgOpen: isDark ? "rgba(10,18,35,0.95)" : "rgba(247,245,255,0.98)",
+		actBgOvd: isDark ? "rgba(248,113,113,0.04)" : "rgba(248,113,113,0.04)",
+		actBgOvdOpen: isDark ? "rgba(30,10,10,0.97)" : "rgba(255,240,240,0.98)",
+		actBdr: isDark ? "#1e2d45" : "rgba(124,92,255,0.12)",
+		actBdrOpen: isDark ? "rgba(139,92,246,0.4)" : "rgba(124,92,255,0.5)",
+		actBdrOvd: isDark ? "rgba(248,113,113,0.2)" : "rgba(248,113,113,0.2)",
+		actBdrOvdOpen: isDark ? "rgba(248,113,113,0.35)" : "rgba(248,113,113,0.35)",
+		actTitle: isDark ? "#f1f5f9" : "#1e1a33",
+		actTitleDone: isDark ? "#64748b" : "#9580c9",
+		// Subtareas toggle button
+		staBg: isDark ? "rgba(99,102,241,0.08)" : "rgba(124,92,255,0.06)",
+		staBgOpen: isDark ? "rgba(139,92,246,0.2)" : "rgba(124,92,255,0.12)",
+		staBdr: isDark ? "#1e3050" : "rgba(124,92,255,0.2)",
+		staBdrOpen: isDark ? "rgba(192,132,252,0.5)" : "rgba(124,92,255,0.5)",
+		staClr: isDark ? "#64748b" : "#9580c9",
+		staClrOpen: isDark ? "#c084fc" : "#7c3aed",
+		// Edit/Delete icon buttons (rest)
+		actIconClr: isDark ? "#334155" : "#c4b5fd",
+		// Expanded activity section
+		actBodyBdr: isDark ? "#0f1e33" : "rgba(124,92,255,0.1)",
+		progTrack: isDark ? "#0f172a" : "rgba(124,92,255,0.08)",
+		progLabel: isDark ? "#475569" : "#9580c9",
+		progCount: isDark ? "#64748b" : "#a89bd4",
+		loadClr: isDark ? "#475569" : "#9580c9",
+		noSubClr: isDark ? "#334155" : "#a89bd4",
+		// Subtask rows
+		subRowBg: isDark ? "rgba(14,24,42,0.7)" : "rgba(124,92,255,0.04)",
+		subRowBdr: isDark ? "#0f1e33" : "rgba(124,92,255,0.1)",
+		subCircle: isDark ? "#2d4a6a" : "#c4b5fd",
+		subName: isDark ? "#cbd5e1" : "#3d3466",
+		subNameDone: isDark ? "#334155" : "#a89bd4",
+		subHrClr: isDark ? "#a07020" : "#8b6d20",
+		// Add-subtask button
+		addSubBdr: isDark ? "#1e3050" : "rgba(124,92,255,0.2)",
+		addSubClr: isDark ? "#334155" : "#a89bd4",
+		// Add-activity button
+		addActBdr: isDark ? "#334155" : "rgba(124,92,255,0.2)",
+		addActClr: isDark ? "#64748b" : "#9580c9",
+		// Delete-subject modal
+		delModalBg: isDark
+			? "linear-gradient(155deg,#1a0e0e 0%,#110909 55%,#090404 100%)"
+			: "linear-gradient(155deg,#fff5f5 0%,#fff0f0 55%,#ffe8e8 100%)",
+		delTitle: isDark ? "#f1f5f9" : "#1e1a33",
+		delDesc: isDark ? "#f1f5f9" : "#2d1a1a",
+		delCancelBdr: isDark ? "#334155" : "rgba(239,68,68,0.3)",
+		delCancelClr: isDark ? "#94a3b8" : "#9a3a3a",
+		hrsBadgeBg: isDark ? "#0f172a" : "rgba(251,191,36,0.1)",
+	};
+
 	const allSubjectKeys = Object.keys(grouped).sort((a, b) => {
 		if (activeFilters.includes("org-za")) return b.localeCompare(a);
 		if (activeFilters.includes("org-count"))
@@ -176,7 +247,7 @@ export default function OrganizationView({
 				style={{
 					padding: "4rem 2rem",
 					textAlign: "center",
-					color: "#94a3b8",
+					color: ov.emptyClr,
 					animationDelay: "0.2s",
 				}}
 			>
@@ -222,9 +293,9 @@ export default function OrganizationView({
 						<div
 							key={subject}
 							style={{
-								background: "#1e293b",
+								background: ov.subBg,
 								borderRadius: "12px",
-								border: isOpen ? "1px solid rgba(139, 92, 246, 0.4)" : "1px solid #334155",
+								border: `1px solid ${isOpen ? ov.subBdrOpen : ov.subBdr}`,
 								overflow: "hidden",
 								transition: "border-color 0.2s",
 							}}
@@ -237,19 +308,19 @@ export default function OrganizationView({
 									gap: "12px",
 									padding: "14px 20px",
 									cursor: "pointer",
-									background: isOpen ? "rgba(139, 92, 246, 0.08)" : "transparent",
+									background: isOpen ? ov.subHdBg : "transparent",
 									transition: "background 0.2s",
 								}}
 								onClick={() => setExpandedSubject(isOpen ? null : subject)}
 							>
 								<BookOpen size={18} color="#c084fc" style={{ flexShrink: 0 }} />
-								<span style={{ fontWeight: 700, fontSize: "15px", color: "#f1f5f9", flex: 1 }}>
+								<span style={{ fontWeight: 700, fontSize: "15px", color: ov.subTitle, flex: 1 }}>
 									{subject}
 								</span>
 								<span
 									style={{
 										fontSize: "12px",
-										color: "#64748b",
+										color: ov.subMeta,
 										display: "flex",
 										alignItems: "center",
 										gap: "6px",
@@ -257,10 +328,10 @@ export default function OrganizationView({
 								>
 									<span
 										style={{
-											background: "#0f172a",
+											background: ov.badgeBg,
 											padding: "2px 8px",
 											borderRadius: "20px",
-											color: "#94a3b8",
+											color: ov.badgeClr,
 										}}
 									>
 										{acts.length} actividad{acts.length !== 1 ? "es" : ""}
@@ -268,7 +339,7 @@ export default function OrganizationView({
 									{totalHours > 0 && (
 										<span
 											style={{
-												background: "#0f172a",
+												background: ov.hrsBadgeBg,
 												padding: "2px 8px",
 												borderRadius: "20px",
 												color: "#fbbf24",
@@ -302,13 +373,13 @@ export default function OrganizationView({
 											border: "none",
 											cursor: "pointer",
 											padding: "4px 5px",
-											color: "#475569",
+											color: ov.iconClr,
 											borderRadius: "6px",
 											display: "flex",
 											alignItems: "center",
 										}}
 										onMouseEnter={(e) => (e.currentTarget.style.color = "#c084fc")}
-										onMouseLeave={(e) => (e.currentTarget.style.color = "#475569")}
+										onMouseLeave={(e) => (e.currentTarget.style.color = ov.iconClr)}
 									>
 										<Pencil size={13} />
 									</button>
@@ -320,20 +391,20 @@ export default function OrganizationView({
 											border: "none",
 											cursor: "pointer",
 											padding: "4px 5px",
-											color: "#475569",
+											color: ov.iconClr,
 											borderRadius: "6px",
 											display: "flex",
 											alignItems: "center",
 										}}
 										onMouseEnter={(e) => (e.currentTarget.style.color = "#f87171")}
-										onMouseLeave={(e) => (e.currentTarget.style.color = "#475569")}
+										onMouseLeave={(e) => (e.currentTarget.style.color = ov.iconClr)}
 									>
 										<Trash2 size={13} />
 									</button>
 								</div>
 								<ChevronDown
 									size={16}
-									color="#64748b"
+									color={ov.subMeta}
 									style={{
 										transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
 										transition: "transform 0.2s",
@@ -346,12 +417,12 @@ export default function OrganizationView({
 							{isOpen && (
 								<div
 									style={{
-										borderTop: "1px solid #334155",
+										borderTop: `1px solid ${ov.subBodyBdr}`,
 										animation: "orgSlideDown 0.25s cubic-bezier(0.16,1,0.3,1)",
 									}}
 								>
 									{acts.length === 0 ? (
-										<div style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>
+										<div style={{ padding: "2rem", textAlign: "center", color: ov.emptySubClr }}>
 											<Inbox
 												size={28}
 												style={{ opacity: 0.4, margin: "0 auto 0.5rem auto", display: "block" }}
@@ -362,8 +433,8 @@ export default function OrganizationView({
 											<button
 												style={{
 													background: "transparent",
-													border: "1px dashed #475569",
-													color: "#94a3b8",
+													border: `1px dashed ${ov.emptyBtnBdr}`,
+													color: ov.emptyBtnClr,
 													borderRadius: "6px",
 													padding: "6px 14px",
 													fontSize: "12px",
@@ -412,23 +483,23 @@ export default function OrganizationView({
 															borderRadius: "11px",
 															border: isActOpen
 																? isActOverdue
-																	? "1px solid rgba(248,113,113,0.35)"
-																	: "1px solid rgba(139,92,246,0.4)"
+																	? `1px solid ${ov.actBdrOvdOpen}`
+																	: `1px solid ${ov.actBdrOpen}`
 																: isActOverdue
-																	? "1px solid rgba(248,113,113,0.2)"
-																	: "1px solid #1e2d45",
+																	? `1px solid ${ov.actBdrOvd}`
+																	: `1px solid ${ov.actBdr}`,
 															borderLeft: isActOverdue
 																? "4px solid #f87171"
-																: `4px solid ${statusColors[act.status] ?? "#334155"}`,
+																: `4px solid ${statusColors[act.status] ?? ov.actBdr}`,
 															overflow: "hidden",
 															transition: "border-color 0.2s, box-shadow 0.2s",
 															background: isActOpen
 																? isActOverdue
-																	? "rgba(30,10,10,0.97)"
-																	: "rgba(10,18,35,0.95)"
+																	? ov.actBgOvdOpen
+																	: ov.actBgOpen
 																: isActOverdue
-																	? "rgba(248,113,113,0.04)"
-																	: "#0c1628",
+																	? ov.actBgOvd
+																	: ov.actBg,
 															boxShadow: isActOpen
 																? isActOverdue
 																	? "0 0 0 1px rgba(248,113,113,0.12)"
@@ -484,7 +555,8 @@ export default function OrganizationView({
 																		style={{
 																			fontSize: "14px",
 																			fontWeight: 700,
-																			color: act.status === "completed" ? "#64748b" : "#f1f5f9",
+																			color:
+																				act.status === "completed" ? ov.actTitleDone : ov.actTitle,
 																			textDecoration:
 																				act.status === "completed" ? "line-through" : "none",
 																			flex: 1,
@@ -600,8 +672,8 @@ export default function OrganizationView({
 																		background: isActOpen
 																			? "rgba(139,92,246,0.2)"
 																			: "rgba(99,102,241,0.08)",
-																		border: `1px solid ${isActOpen ? "rgba(192,132,252,0.5)" : "#1e3050"}`,
-																		color: isActOpen ? "#c084fc" : "#64748b",
+																		border: `1px solid ${isActOpen ? ov.staBdrOpen : ov.staBdr}`,
+																		color: isActOpen ? ov.staClrOpen : ov.staClr,
 																		borderRadius: "7px",
 																		padding: "5px 10px",
 																		fontSize: "11px",
@@ -644,7 +716,7 @@ export default function OrganizationView({
 																	style={{
 																		background: "transparent",
 																		border: "none",
-																		color: "#334155",
+																		color: ov.actIconClr,
 																		cursor: "pointer",
 																		padding: "5px",
 																		borderRadius: "5px",
@@ -656,13 +728,13 @@ export default function OrganizationView({
 																	onMouseOut={(e) => (e.currentTarget.style.color = "#334155")}
 																	title="Editar actividad"
 																>
-																	<Pencil size={14} />
+																	<Pencil />
 																</button>
 																<button
 																	style={{
 																		background: "transparent",
 																		border: "none",
-																		color: "#334155",
+																		color: ov.actIconClr,
 																		cursor: "pointer",
 																		padding: "5px",
 																		borderRadius: "5px",
@@ -674,7 +746,7 @@ export default function OrganizationView({
 																	onMouseOut={(e) => (e.currentTarget.style.color = "#334155")}
 																	title="Eliminar actividad"
 																>
-																	<Trash2 size={14} />
+																	<Trash2 />
 																</button>
 															</div>
 														</div>
@@ -688,7 +760,7 @@ export default function OrganizationView({
 															<div style={{ overflow: "hidden" }}>
 																<div
 																	style={{
-																		borderTop: "1px solid #0f1e33",
+																		borderTop: `1px solid ${ov.actBodyBdr}`,
 																		padding: "6px 16px 14px 16px",
 																	}}
 																>
@@ -704,20 +776,20 @@ export default function OrganizationView({
 																				<span
 																					style={{
 																						fontSize: "10px",
-																						color: "#475569",
+																						color: ov.progLabel,
 																						fontWeight: 600,
 																					}}
 																				>
 																					PROGRESO
 																				</span>
-																				<span style={{ fontSize: "10px", color: "#64748b" }}>
+																				<span style={{ fontSize: "10px", color: ov.progCount }}>
 																					{completedSubs} de {totalSubs}
 																				</span>
 																			</div>
 																			<div
 																				style={{
 																					height: "4px",
-																					background: "#0f172a",
+																					background: ov.progTrack,
 																					borderRadius: "4px",
 																					overflow: "hidden",
 																				}}
@@ -740,7 +812,7 @@ export default function OrganizationView({
 																				display: "flex",
 																				alignItems: "center",
 																				gap: "8px",
-																				color: "#475569",
+																				color: ov.loadClr,
 																				fontSize: "12px",
 																				padding: "8px 0",
 																			}}
@@ -753,7 +825,7 @@ export default function OrganizationView({
 																		<p
 																			style={{
 																				fontSize: "12px",
-																				color: "#334155",
+																				color: ov.noSubClr,
 																				padding: "8px 0",
 																				margin: 0,
 																			}}
@@ -807,24 +879,22 @@ export default function OrganizationView({
 																							background:
 																								sub.status === "completed"
 																									? "transparent"
-																									: "rgba(14,24,42,0.7)",
+																									: ov.subRowBg,
 																							border:
 																								sub.status === "completed"
 																									? "none"
-																									: "1px solid #0f1e33",
+																									: `1px solid ${ov.subRowBdr}`,
 																							transition: "background 0.15s",
 																						}}
 																					>
 																						{sub.status === "completed" ? (
 																							<CheckCircle2
-																								size={14}
 																								color="#34d399"
 																								style={{ flexShrink: 0 }}
 																							/>
 																						) : (
 																							<Circle
-																								size={14}
-																								color="#2d4a6a"
+																								color={ov.subCircle}
 																								style={{ flexShrink: 0 }}
 																							/>
 																						)}
@@ -835,8 +905,8 @@ export default function OrganizationView({
 																								fontWeight: 500,
 																								color:
 																									sub.status === "completed"
-																										? "#334155"
-																										: "#cbd5e1",
+																										? ov.subNameDone
+																										: ov.subName,
 																								textDecoration:
 																									sub.status === "completed"
 																										? "line-through"
@@ -867,7 +937,7 @@ export default function OrganizationView({
 																									padding: "1px 7px",
 																									borderRadius: "20px",
 																									background: "rgba(251,191,36,0.08)",
-																									color: "#a07020",
+																									color: ov.subHrClr,
 																									fontWeight: 600,
 																								}}
 																							>
@@ -896,8 +966,8 @@ export default function OrganizationView({
 																		style={{
 																			marginTop: "8px",
 																			background: "transparent",
-																			border: "1px dashed #1e3050",
-																			color: "#334155",
+																			border: `1px dashed ${ov.addSubBdr}`,
+																			color: ov.addSubClr,
 																			borderRadius: "6px",
 																			padding: "5px 12px",
 																			fontSize: "11px",
@@ -913,8 +983,8 @@ export default function OrganizationView({
 																			e.currentTarget.style.color = "#c084fc";
 																		}}
 																		onMouseOut={(e) => {
-																			e.currentTarget.style.borderColor = "#1e3050";
-																			e.currentTarget.style.color = "#334155";
+																			e.currentTarget.style.borderColor = ov.addSubBdr;
+																			e.currentTarget.style.color = ov.addSubClr;
 																		}}
 																	>
 																		<Plus size={11} /> Agregar subtarea
@@ -930,8 +1000,8 @@ export default function OrganizationView({
 											<button
 												style={{
 													background: "transparent",
-													border: "1px dashed #334155",
-													color: "#64748b",
+													border: `1px dashed ${ov.addActBdr}`,
+													color: ov.addActClr,
 													borderRadius: "8px",
 													padding: "8px 14px",
 													fontSize: "12px",
@@ -947,8 +1017,8 @@ export default function OrganizationView({
 													e.currentTarget.style.color = "#c084fc";
 												}}
 												onMouseOut={(e) => {
-													e.currentTarget.style.borderColor = "#334155";
-													e.currentTarget.style.color = "#64748b";
+													e.currentTarget.style.borderColor = ov.addActBdr;
+													e.currentTarget.style.color = ov.addActClr;
 												}}
 											>
 												<Plus size={13} /> Agregar actividad a {subject}
@@ -1064,8 +1134,8 @@ export default function OrganizationView({
 							style={{
 								fontFamily: "inherit",
 								position: "relative",
-								background: "linear-gradient(155deg,#1a0e0e 0%,#110909 55%,#090404 100%)",
-								border: "1px solid rgba(248,113,113,0.2)",
+								background: ov.delModalBg,
+								border: `1px solid ${ov.actBdrOvd}`,
 								borderRadius: "16px",
 								animation: "fadeInScale 0.22s cubic-bezier(0.16,1,0.3,1)",
 								padding: "28px",
@@ -1106,7 +1176,9 @@ export default function OrganizationView({
 										<Trash2 size={20} color="#f87171" />
 									</div>
 									<div>
-										<h3 style={{ color: "#f1f5f9", fontWeight: 700, fontSize: "16px", margin: 0 }}>
+										<h3
+											style={{ color: ov.delTitle, fontWeight: 700, fontSize: "16px", margin: 0 }}
+										>
 											Eliminar materia
 										</h3>
 										<p
@@ -1141,7 +1213,7 @@ export default function OrganizationView({
 									gap: "6px",
 								}}
 							>
-								<p style={{ margin: 0, fontSize: "13px", color: "#f1f5f9", fontWeight: 600 }}>
+								<p style={{ margin: 0, fontSize: "13px", color: ov.delDesc, fontWeight: 600 }}>
 									Al eliminar <strong style={{ color: "#f87171" }}>{orgConfirmDelete}</strong> se
 									borrarán en cascada:
 								</p>
@@ -1220,12 +1292,12 @@ export default function OrganizationView({
 									style={{
 										padding: "11px 18px",
 										borderRadius: "8px",
-										border: "1px solid #334155",
+										border: `1px solid ${ov.delCancelBdr}`,
 										cursor: subjectDeleteLoading ? "not-allowed" : "pointer",
 										fontSize: "13px",
 										fontWeight: 600,
 										background: "transparent",
-										color: "#94a3b8",
+										color: ov.delCancelClr,
 									}}
 								>
 									Cancelar

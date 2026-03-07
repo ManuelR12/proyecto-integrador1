@@ -60,9 +60,9 @@ export default function ComingSoon() {
 
 				{/* Headline */}
 				<h1 className="cs-title">
-					Estamos preparando
-					<br />
-					<span className="cs-title__accent">algo increíble</span>
+					Landing Page
+					<br /> 
+					<span className="cs-title__accent">Llegará pronto</span>
 				</h1>
 
 				{/* Subtitle */}
@@ -85,11 +85,11 @@ export default function ComingSoon() {
 						<IconLock />
 						¿Ya tienes una cuenta?
 					</p>
-					<h2 className="cs-cta__heading">Accede a lo tuyo 
+					<h2 className="cs-cta__heading">Accede
 						<span className="cs-cta__heading-accent"> ahora mismo</span>
 					</h2>
 					<p className="cs-cta__desc">
-						Tu dashboard y progreso te están esperando. Inicia sesión para continuar.
+						Tu dashboard y actividades y tu progreso te están esperando. Inicia sesión para continuar.
 					</p>
 					<button
 						id="cs-login-btn"

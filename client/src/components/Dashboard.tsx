@@ -33,9 +33,14 @@ import {
 	fetchTodayView,
 	createActivity,
 	deleteActivity,
+	fetchSubjects,
+	createSubject,
+	updateSubject,
+	deleteSubject,
 	type User,
 	type Activity,
 	type Subtask,
+	type Subject,
 } from "../api/dashboard";
 import { toast } from "sonner";
 import "./Dashboard.css";
@@ -79,6 +84,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 	} | null>(null);
 	const [createOpen, setCreateOpen] = useState(false);
 	const [prefilledSubject, setPrefilledSubject] = useState("");
+	const [pendingExpandSubject, setPendingExpandSubject] = useState<string | null>(null);
 	const [subjectModal, setSubjectModal] = useState<{
 		mode: "add" | "rename";
 		current?: string;
@@ -90,53 +96,97 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 			return [];
 		}
 	});
+	const [apiSubjects, setApiSubjects] = useState<Subject[]>([]);
 
 	const subjects = useMemo<string[]>(() => {
 		const fromActivities = activities.map((a) => a.course_name).filter(Boolean);
-		return Array.from(new Set([...fromActivities, ...customSubjects])).sort();
-	}, [activities, customSubjects]);
+		const fromApi = apiSubjects.map((s) => s.name);
+		return Array.from(new Set([...fromActivities, ...fromApi, ...customSubjects])).sort();
+	}, [activities, customSubjects, apiSubjects]);
 
 	function addCustomSubject(name: string) {
 		const trimmed = name.trim();
 		if (!trimmed) return;
-		setCustomSubjects((prev) => {
-			if (prev.includes(trimmed)) return prev;
-			const next = [...prev, trimmed];
-			try {
-				localStorage.setItem("luma_subjects", JSON.stringify(next));
-			} catch {
-				// localStorage unavailable — ignore
-			}
-			return next;
-		});
+		// Try to create via API; fall back to localStorage if API unavailable
+		createSubject(trimmed)
+			.then((created) => {
+				setApiSubjects((prev) =>
+					prev.some((s) => s.name === created.name) ? prev : [...prev, created],
+				);
+			})
+			.catch(() => {
+				// Fallback: localStorage only
+				setCustomSubjects((prev) => {
+					if (prev.includes(trimmed)) return prev;
+					const next = [...prev, trimmed];
+					try {
+						localStorage.setItem("luma_subjects", JSON.stringify(next));
+					} catch {
+						/* ignore */
+					}
+					return next;
+				});
+			});
 	}
 
-	function removeCustomSubject(name: string) {
-		setCustomSubjects((prev) => {
-			const next = prev.filter((s) => s !== name);
-			try {
-				localStorage.setItem("luma_subjects", JSON.stringify(next));
-			} catch {
-				// localStorage unavailable — ignore
-			}
-			return next;
-		});
+	async function removeCustomSubject(name: string): Promise<void> {
+		const subject = apiSubjects.find((s) => s.name === name);
+		if (subject) {
+			await deleteSubject(subject.id);
+			// Reload activities (cascade-deleted), subjects and today view
+			const [acts, subs, today] = await Promise.all([
+				fetchActivities(),
+				fetchSubjects(),
+				fetchTodayView(),
+			]);
+			setActivities(Array.isArray(acts) ? acts : []);
+			setApiSubjects(Array.isArray(subs) ? subs : []);
+			if (today)
+				setTodayData({ overdue: today.overdue, today: today.today, upcoming: today.upcoming });
+		} else {
+			// Fallback: localStorage only
+			setCustomSubjects((prev) => {
+				const next = prev.filter((s) => s !== name);
+				try {
+					localStorage.setItem("luma_subjects", JSON.stringify(next));
+				} catch {
+					/* ignore */
+				}
+				return next;
+			});
+		}
 	}
 
-	function renameCustomSubject(oldName: string, newName: string) {
+	async function renameCustomSubject(oldName: string, newName: string): Promise<void> {
 		const trimmed = newName.trim();
 		if (!trimmed || trimmed === oldName) return;
-		setCustomSubjects((prev) => {
-			const next = prev.includes(oldName)
-				? prev.map((s) => (s === oldName ? trimmed : s))
-				: [...prev, trimmed];
-			try {
-				localStorage.setItem("luma_subjects", JSON.stringify(next));
-			} catch {
-				// localStorage unavailable — ignore
-			}
-			return next;
-		});
+		const subject = apiSubjects.find((s) => s.name === oldName);
+		if (subject) {
+			await updateSubject(subject.id, trimmed);
+			// Reload activities (course_name bulk-updated), subjects and today view
+			const [acts, subs, today] = await Promise.all([
+				fetchActivities(),
+				fetchSubjects(),
+				fetchTodayView(),
+			]);
+			setActivities(Array.isArray(acts) ? acts : []);
+			setApiSubjects(Array.isArray(subs) ? subs : []);
+			if (today)
+				setTodayData({ overdue: today.overdue, today: today.today, upcoming: today.upcoming });
+		} else {
+			// Fallback: localStorage only
+			setCustomSubjects((prev) => {
+				const next = prev.includes(oldName)
+					? prev.map((s) => (s === oldName ? trimmed : s))
+					: [...prev, trimmed];
+				try {
+					localStorage.setItem("luma_subjects", JSON.stringify(next));
+				} catch {
+					/* ignore */
+				}
+				return next;
+			});
+		}
 	}
 
 	const headerInfo = useMemo(() => {
@@ -175,10 +225,11 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 			}
 
 			try {
-				const [me, acts, todayView] = await Promise.all([
+				const [me, acts, todayView, subs] = await Promise.all([
 					fetchMe(),
 					fetchActivities(),
 					fetchTodayView(),
+					fetchSubjects(),
 				]);
 				if (!cancelled) {
 					setUser(me ?? null);
@@ -188,6 +239,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 						today: todayView.today,
 						upcoming: todayView.upcoming,
 					});
+					setApiSubjects(Array.isArray(subs) ? subs : []);
 				}
 			} catch (err) {
 				console.error("Error cargando datos:", err);
@@ -633,7 +685,11 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 											total_estimated_hours: resp.total_estimated_hours ?? totalHoursFromPayload,
 										};
 										setActivities((prev) => [created, ...prev]);
-
+										if (activeNav === "org") {
+											const subjectName =
+												resp.course_name ?? apiPayload.course_name ?? payload.subject;
+											if (subjectName) setPendingExpandSubject(subjectName);
+										}
 										setCreateOpen(false);
 										toast.success("Actividad creada");
 									} catch (err) {
@@ -788,6 +844,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 								}
 								activeFilters={activeFilters}
 								searchQuery={searchQuery}
+								expandSubject={pendingExpandSubject}
 								onOpenCreate={(subject) => {
 									setPrefilledSubject(subject ?? "");
 									setCreateOpen(true);

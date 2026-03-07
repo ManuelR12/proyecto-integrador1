@@ -13,6 +13,7 @@ interface SubtaskManagerModalProps {
 	activityTitle: string;
 	open: boolean;
 	onClose: () => void;
+	onSubtasksChange?: (subtasks: Subtask[]) => void;
 }
 
 export default function SubtaskManagerModal({
@@ -20,6 +21,7 @@ export default function SubtaskManagerModal({
 	activityTitle,
 	open,
 	onClose,
+	onSubtasksChange,
 }: SubtaskManagerModalProps) {
 	// --- States ---
 	const [subtasks, setSubtasks] = useState<Subtask[]>([]);
@@ -90,7 +92,11 @@ export default function SubtaskManagerModal({
 			});
 
 			// Update UI dynamically (FE-07)
-			setSubtasks((prev) => [...prev, newSubtask]);
+			setSubtasks((prev) => {
+				const next = [...prev, newSubtask];
+				onSubtasksChange?.(next);
+				return next;
+			});
 			toast.success("Subtarea añadida al plan.");
 
 			// Clear form inputs
@@ -113,7 +119,11 @@ export default function SubtaskManagerModal({
 	const handleDelete = async (subtaskId: number) => {
 		try {
 			await deleteSubtask(activityId, subtaskId);
-			setSubtasks((prev) => prev.filter((st) => st.id !== subtaskId));
+			setSubtasks((prev) => {
+				const next = prev.filter((st) => st.id !== subtaskId);
+				onSubtasksChange?.(next);
+				return next;
+			});
 			toast.success("Subtarea eliminada.");
 		} catch (error) {
 			console.error("Error deleting subtask:", error);

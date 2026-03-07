@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
 	CalendarClock,
@@ -27,12 +27,13 @@ interface OrgViewProps {
 	subjects: string[];
 	onDelete: (id: number, title: string) => void;
 	onAddSubject: (name: string) => void;
-	onRemoveSubject: (name: string) => void;
-	onRenameSubject: (oldName: string, newName: string) => void;
+	onRemoveSubject: (name: string) => Promise<void>;
+	onRenameSubject: (oldName: string, newName: string) => Promise<void>;
 	onActivityUpdate: (updated: Activity) => void;
 	onOpenCreate: (subject?: string) => void;
 	activeFilters: string[];
 	searchQuery: string;
+	expandSubject?: string | null;
 }
 
 export default function OrganizationView({
@@ -46,14 +47,23 @@ export default function OrganizationView({
 	onOpenCreate,
 	activeFilters,
 	searchQuery,
+	expandSubject,
 }: OrgViewProps) {
 	const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
+
+	useEffect(() => {
+		if (expandSubject) {
+			setExpandedSubject(expandSubject);
+		}
+	}, [expandSubject]);
 	const [expandedActivity, setExpandedActivity] = useState<number | null>(null);
 	const [orgSubjectModal, setOrgSubjectModal] = useState<{
 		mode: "add" | "rename";
 		current?: string;
 	} | null>(null);
 	const [orgConfirmDelete, setOrgConfirmDelete] = useState<string | null>(null);
+	const [subjectDeleteLoading, setSubjectDeleteLoading] = useState(false);
+	const [subjectRenameLoading, setSubjectRenameLoading] = useState(false);
 	const [orgEditActivity, setOrgEditActivity] = useState<Activity | null>(null);
 	const [subtaskStateByActivity, setSubtaskStateByActivity] = useState<
 		Record<number, { loading: boolean; items: Subtask[] }>
@@ -100,8 +110,12 @@ export default function OrganizationView({
 		return map;
 	}, [activities, subjects, searchQuery, activeFilters]);
 
-	async function loadSubtasks(activityId: number, force = false) {
-		if (!force && subtaskStateByActivity[activityId]?.items.length) return;
+	async function loadSubtasks(
+		activityId: number,
+		force = false,
+	): Promise<import("../api/dashboard").Subtask[]> {
+		if (!force && subtaskStateByActivity[activityId]?.items.length)
+			return subtaskStateByActivity[activityId].items;
 		setSubtaskStateByActivity((prev) => ({
 			...prev,
 			[activityId]: { loading: true, items: prev[activityId]?.items ?? [] },
@@ -112,11 +126,13 @@ export default function OrganizationView({
 				...prev,
 				[activityId]: { loading: false, items },
 			}));
+			return items;
 		} catch {
 			setSubtaskStateByActivity((prev) => ({
 				...prev,
 				[activityId]: { loading: false, items: [] },
 			}));
+			return [];
 		}
 	}
 
@@ -328,7 +344,12 @@ export default function OrganizationView({
 
 							{/* Subject body */}
 							{isOpen && (
-								<div style={{ borderTop: "1px solid #334155" }}>
+								<div
+									style={{
+										borderTop: "1px solid #334155",
+										animation: "orgSlideDown 0.25s cubic-bezier(0.16,1,0.3,1)",
+									}}
+								>
 									{acts.length === 0 ? (
 										<div style={{ padding: "2rem", textAlign: "center", color: "#64748b" }}>
 											<Inbox
@@ -657,236 +678,250 @@ export default function OrganizationView({
 																</button>
 															</div>
 														</div>
-														{isActOpen && (
-															<div
-																style={{
-																	borderTop: "1px solid #0f1e33",
-																	padding: "6px 16px 14px 16px",
-																}}
-															>
-																{totalSubs > 0 && (
-																	<div style={{ marginBottom: "10px", marginTop: "6px" }}>
+														<div
+															style={{
+																display: "grid",
+																gridTemplateRows: isActOpen ? "1fr" : "0fr",
+																transition: "grid-template-rows 0.22s cubic-bezier(0.16,1,0.3,1)",
+															}}
+														>
+															<div style={{ overflow: "hidden" }}>
+																<div
+																	style={{
+																		borderTop: "1px solid #0f1e33",
+																		padding: "6px 16px 14px 16px",
+																	}}
+																>
+																	{totalSubs > 0 && (
+																		<div style={{ marginBottom: "10px", marginTop: "6px" }}>
+																			<div
+																				style={{
+																					display: "flex",
+																					justifyContent: "space-between",
+																					marginBottom: "4px",
+																				}}
+																			>
+																				<span
+																					style={{
+																						fontSize: "10px",
+																						color: "#475569",
+																						fontWeight: 600,
+																					}}
+																				>
+																					PROGRESO
+																				</span>
+																				<span style={{ fontSize: "10px", color: "#64748b" }}>
+																					{completedSubs} de {totalSubs}
+																				</span>
+																			</div>
+																			<div
+																				style={{
+																					height: "4px",
+																					background: "#0f172a",
+																					borderRadius: "4px",
+																					overflow: "hidden",
+																				}}
+																			>
+																				<div
+																					style={{
+																						height: "100%",
+																						width: `${totalSubs > 0 ? (completedSubs / totalSubs) * 100 : 0}%`,
+																						background: "linear-gradient(90deg,#7c3aed,#34d399)",
+																						borderRadius: "4px",
+																						transition: "width 0.4s",
+																					}}
+																				/>
+																			</div>
+																		</div>
+																	)}
+																	{stState?.loading && (
 																		<div
 																			style={{
 																				display: "flex",
-																				justifyContent: "space-between",
-																				marginBottom: "4px",
+																				alignItems: "center",
+																				gap: "8px",
+																				color: "#475569",
+																				fontSize: "12px",
+																				padding: "8px 0",
 																			}}
 																		>
-																			<span
-																				style={{
-																					fontSize: "10px",
-																					color: "#475569",
-																					fontWeight: 600,
-																				}}
-																			>
-																				PROGRESO
-																			</span>
-																			<span style={{ fontSize: "10px", color: "#64748b" }}>
-																				{completedSubs} de {totalSubs}
-																			</span>
+																			<Loader2 size={13} className="spinner" />
+																			<span>Cargando subtareas...</span>
 																		</div>
+																	)}
+																	{!stState?.loading && subtasks.length === 0 && (
+																		<p
+																			style={{
+																				fontSize: "12px",
+																				color: "#334155",
+																				padding: "8px 0",
+																				margin: 0,
+																			}}
+																		>
+																			Sin subtareas registradas.
+																		</p>
+																	)}
+																	{!stState?.loading && subtasks.length > 0 && (
 																		<div
 																			style={{
-																				height: "4px",
-																				background: "#0f172a",
-																				borderRadius: "4px",
-																				overflow: "hidden",
+																				display: "flex",
+																				flexDirection: "column",
+																				gap: "2px",
 																			}}
 																		>
-																			<div
-																				style={{
-																					height: "100%",
-																					width: `${totalSubs > 0 ? (completedSubs / totalSubs) * 100 : 0}%`,
-																					background: "linear-gradient(90deg,#7c3aed,#34d399)",
-																					borderRadius: "4px",
-																					transition: "width 0.4s",
-																				}}
-																			/>
-																		</div>
-																	</div>
-																)}
-																{stState?.loading && (
-																	<div
-																		style={{
-																			display: "flex",
-																			alignItems: "center",
-																			gap: "8px",
-																			color: "#475569",
-																			fontSize: "12px",
-																			padding: "8px 0",
-																		}}
-																	>
-																		<Loader2 size={13} className="spinner" />
-																		<span>Cargando subtareas...</span>
-																	</div>
-																)}
-																{!stState?.loading && subtasks.length === 0 && (
-																	<p
-																		style={{
-																			fontSize: "12px",
-																			color: "#334155",
-																			padding: "8px 0",
-																			margin: 0,
-																		}}
-																	>
-																		Sin subtareas registradas.
-																	</p>
-																)}
-																{!stState?.loading && subtasks.length > 0 && (
-																	<div
-																		style={{ display: "flex", flexDirection: "column", gap: "2px" }}
-																	>
-																		{subtasks.map((sub) => {
-																			const sCols: Record<string, string> = {
-																				pending: "#fbbf24",
-																				in_progress: "#60a5fa",
-																				completed: "#34d399",
-																			};
-																			const sLbls: Record<string, string> = {
-																				pending: "Pendiente",
-																				in_progress: "En progreso",
-																				completed: "Completada",
-																			};
-																			const subDiff = daysUntil(sub.target_date);
-																			let sdColor = "#7dd3fc",
-																				sdBg = "rgba(125,211,252,0.08)";
-																			if (sub.status !== "completed") {
-																				if (subDiff < 0) {
-																					sdColor = "#f87171";
-																					sdBg = "rgba(248,113,113,0.1)";
-																				} else if (subDiff === 0) {
-																					sdColor = "#fbbf24";
-																					sdBg = "rgba(251,191,36,0.1)";
-																				} else if (subDiff === 1) {
-																					sdColor = "#fb923c";
-																					sdBg = "rgba(251,146,60,0.1)";
+																			{subtasks.map((sub) => {
+																				const sCols: Record<string, string> = {
+																					pending: "#fbbf24",
+																					in_progress: "#60a5fa",
+																					completed: "#34d399",
+																				};
+																				const sLbls: Record<string, string> = {
+																					pending: "Pendiente",
+																					in_progress: "En progreso",
+																					completed: "Completada",
+																				};
+																				const subDiff = daysUntil(sub.target_date);
+																				let sdColor = "#7dd3fc",
+																					sdBg = "rgba(125,211,252,0.08)";
+																				if (sub.status !== "completed") {
+																					if (subDiff < 0) {
+																						sdColor = "#f87171";
+																						sdBg = "rgba(248,113,113,0.1)";
+																					} else if (subDiff === 0) {
+																						sdColor = "#fbbf24";
+																						sdBg = "rgba(251,191,36,0.1)";
+																					} else if (subDiff === 1) {
+																						sdColor = "#fb923c";
+																						sdBg = "rgba(251,146,60,0.1)";
+																					}
 																				}
-																			}
-																			return (
-																				<div
-																					key={sub.id}
-																					style={{
-																						display: "flex",
-																						alignItems: "center",
-																						gap: "10px",
-																						padding: "7px 10px",
-																						borderRadius: "8px",
-																						background:
-																							sub.status === "completed"
-																								? "transparent"
-																								: "rgba(14,24,42,0.7)",
-																						border:
-																							sub.status === "completed"
-																								? "none"
-																								: "1px solid #0f1e33",
-																						transition: "background 0.15s",
-																					}}
-																				>
-																					{sub.status === "completed" ? (
-																						<CheckCircle2
-																							size={14}
-																							color="#34d399"
-																							style={{ flexShrink: 0 }}
-																						/>
-																					) : (
-																						<Circle
-																							size={14}
-																							color="#2d4a6a"
-																							style={{ flexShrink: 0 }}
-																						/>
-																					)}
-																					<span
+																				return (
+																					<div
+																						key={sub.id}
 																						style={{
-																							flex: 1,
-																							fontSize: "12px",
-																							fontWeight: 500,
-																							color:
-																								sub.status === "completed" ? "#334155" : "#cbd5e1",
-																							textDecoration:
+																							display: "flex",
+																							alignItems: "center",
+																							gap: "10px",
+																							padding: "7px 10px",
+																							borderRadius: "8px",
+																							background:
 																								sub.status === "completed"
-																									? "line-through"
-																									: "none",
+																									? "transparent"
+																									: "rgba(14,24,42,0.7)",
+																							border:
+																								sub.status === "completed"
+																									? "none"
+																									: "1px solid #0f1e33",
+																							transition: "background 0.15s",
 																						}}
 																					>
-																						{sub.name}
-																					</span>
-																					{sub.target_date && (
+																						{sub.status === "completed" ? (
+																							<CheckCircle2
+																								size={14}
+																								color="#34d399"
+																								style={{ flexShrink: 0 }}
+																							/>
+																						) : (
+																							<Circle
+																								size={14}
+																								color="#2d4a6a"
+																								style={{ flexShrink: 0 }}
+																							/>
+																						)}
+																						<span
+																							style={{
+																								flex: 1,
+																								fontSize: "12px",
+																								fontWeight: 500,
+																								color:
+																									sub.status === "completed"
+																										? "#334155"
+																										: "#cbd5e1",
+																								textDecoration:
+																									sub.status === "completed"
+																										? "line-through"
+																										: "none",
+																							}}
+																						>
+																							{sub.name}
+																						</span>
+																						{sub.target_date && (
+																							<span
+																								style={{
+																									fontSize: "10px",
+																									padding: "1px 7px",
+																									borderRadius: "20px",
+																									background: sdBg,
+																									color: sdColor,
+																									fontWeight: 600,
+																									whiteSpace: "nowrap",
+																								}}
+																							>
+																								{formatDate(sub.target_date)}
+																							</span>
+																						)}
+																						{sub.estimated_hours > 0 && (
+																							<span
+																								style={{
+																									fontSize: "10px",
+																									padding: "1px 7px",
+																									borderRadius: "20px",
+																									background: "rgba(251,191,36,0.08)",
+																									color: "#a07020",
+																									fontWeight: 600,
+																								}}
+																							>
+																								{sub.estimated_hours}h
+																							</span>
+																						)}
 																						<span
 																							style={{
 																								fontSize: "10px",
 																								padding: "1px 7px",
 																								borderRadius: "20px",
-																								background: sdBg,
-																								color: sdColor,
+																								background: `${sCols[sub.status] ?? "#64748b"}18`,
+																								color: sCols[sub.status] ?? "#64748b",
 																								fontWeight: 600,
 																								whiteSpace: "nowrap",
 																							}}
 																						>
-																							{formatDate(sub.target_date)}
+																							{sLbls[sub.status] ?? sub.status}
 																						</span>
-																					)}
-																					{sub.estimated_hours > 0 && (
-																						<span
-																							style={{
-																								fontSize: "10px",
-																								padding: "1px 7px",
-																								borderRadius: "20px",
-																								background: "rgba(251,191,36,0.08)",
-																								color: "#a07020",
-																								fontWeight: 600,
-																							}}
-																						>
-																							{sub.estimated_hours}h
-																						</span>
-																					)}
-																					<span
-																						style={{
-																							fontSize: "10px",
-																							padding: "1px 7px",
-																							borderRadius: "20px",
-																							background: `${sCols[sub.status] ?? "#64748b"}18`,
-																							color: sCols[sub.status] ?? "#64748b",
-																							fontWeight: 600,
-																							whiteSpace: "nowrap",
-																						}}
-																					>
-																						{sLbls[sub.status] ?? sub.status}
-																					</span>
-																				</div>
-																			);
-																		})}
-																	</div>
-																)}
-																<button
-																	style={{
-																		marginTop: "8px",
-																		background: "transparent",
-																		border: "1px dashed #1e3050",
-																		color: "#334155",
-																		borderRadius: "6px",
-																		padding: "5px 12px",
-																		fontSize: "11px",
-																		cursor: "pointer",
-																		display: "flex",
-																		alignItems: "center",
-																		gap: "4px",
-																		transition: "all 0.15s",
-																	}}
-																	onClick={() => setSubtaskModalActivity(act)}
-																	onMouseOver={(e) => {
-																		e.currentTarget.style.borderColor = "#c084fc";
-																		e.currentTarget.style.color = "#c084fc";
-																	}}
-																	onMouseOut={(e) => {
-																		e.currentTarget.style.borderColor = "#1e3050";
-																		e.currentTarget.style.color = "#334155";
-																	}}
-																>
-																	<Plus size={11} /> Agregar subtarea
-																</button>
+																					</div>
+																				);
+																			})}
+																		</div>
+																	)}
+																	<button
+																		style={{
+																			marginTop: "8px",
+																			background: "transparent",
+																			border: "1px dashed #1e3050",
+																			color: "#334155",
+																			borderRadius: "6px",
+																			padding: "5px 12px",
+																			fontSize: "11px",
+																			cursor: "pointer",
+																			display: "flex",
+																			alignItems: "center",
+																			gap: "4px",
+																			transition: "all 0.15s",
+																		}}
+																		onClick={() => setSubtaskModalActivity(act)}
+																		onMouseOver={(e) => {
+																			e.currentTarget.style.borderColor = "#c084fc";
+																			e.currentTarget.style.color = "#c084fc";
+																		}}
+																		onMouseOut={(e) => {
+																			e.currentTarget.style.borderColor = "#1e3050";
+																			e.currentTarget.style.color = "#334155";
+																		}}
+																	>
+																		<Plus size={11} /> Agregar subtarea
+																	</button>
+																</div>
 															</div>
-														)}
+														</div>
 													</div>
 												);
 											})}
@@ -933,10 +968,30 @@ export default function OrganizationView({
 					activityId={subtaskModalActivity.id}
 					activityTitle={subtaskModalActivity.title}
 					open={true}
-					onClose={() => {
-						const id = subtaskModalActivity.id;
+					onSubtasksChange={(items) => {
+						setSubtaskStateByActivity((prev) => ({
+							...prev,
+							[subtaskModalActivity.id]: { loading: false, items },
+						}));
+						onActivityUpdate({
+							...subtaskModalActivity,
+							subtask_count: items.length,
+							total_estimated_hours: items.reduce(
+								(s, x) => s + (Number(x.estimated_hours) || 0),
+								0,
+							),
+						});
+					}}
+					onClose={async () => {
+						const act = subtaskModalActivity;
 						setSubtaskModalActivity(null);
-						void loadSubtasks(id, true);
+						const items = await loadSubtasks(act.id, true);
+						const newTotal = items.reduce((s, x) => s + (Number(x.estimated_hours) || 0), 0);
+						onActivityUpdate({
+							...act,
+							total_estimated_hours: newTotal,
+							subtask_count: items.length,
+						});
 					}}
 				/>
 			)}
@@ -962,11 +1017,25 @@ export default function OrganizationView({
 							mode={orgSubjectModal.mode}
 							current={orgSubjectModal.current}
 							onClose={() => setOrgSubjectModal(null)}
-							onConfirm={(name: string) => {
-								if (orgSubjectModal.mode === "add") onAddSubject(name);
-								else onRenameSubject(orgSubjectModal.current!, name);
-								setOrgSubjectModal(null);
+							onConfirm={async (name: string) => {
+								if (orgSubjectModal.mode === "add") {
+									onAddSubject(name);
+									setOrgSubjectModal(null);
+									toast.success("Materia agregada");
+								} else {
+									setSubjectRenameLoading(true);
+									try {
+										await onRenameSubject(orgSubjectModal.current!, name);
+										setOrgSubjectModal(null);
+										toast.success("Materia renombrada");
+									} catch {
+										toast.error("No se pudo renombrar la materia.");
+									} finally {
+										setSubjectRenameLoading(false);
+									}
+								}
 							}}
+							isLoading={subjectRenameLoading}
 						/>
 					</div>,
 					document.body,
@@ -1000,18 +1069,26 @@ export default function OrganizationView({
 								borderRadius: "16px",
 								animation: "fadeInScale 0.22s cubic-bezier(0.16,1,0.3,1)",
 								padding: "28px",
-								width: "380px",
+								width: "420px",
 								display: "flex",
 								flexDirection: "column",
 								gap: "16px",
 								boxShadow: "0 25px 60px rgba(0,0,0,0.65), inset 0 0 60px rgba(239,68,68,0.03)",
+								overflow: "hidden",
 							}}
 						>
+							{/* Bloom */}
 							<div
-								className="modal-glow-line"
 								style={{
+									position: "absolute",
+									top: "-20px",
+									left: "-20px",
+									right: "-20px",
+									height: "160px",
 									background:
-										"linear-gradient(90deg, transparent, rgba(239,68,68,0.5) 28%, rgba(248,113,113,0.3) 62%, transparent)",
+										"radial-gradient(ellipse 85% 55% at 50% 0%, rgba(239,68,68,0.15) 0%, rgba(239,68,68,0.05) 50%, transparent 100%)",
+									pointerEvents: "none",
+									zIndex: 1,
 								}}
 							/>
 							<div
@@ -1032,8 +1109,15 @@ export default function OrganizationView({
 										<h3 style={{ color: "#f1f5f9", fontWeight: 700, fontSize: "16px", margin: 0 }}>
 											Eliminar materia
 										</h3>
-										<p style={{ color: "#64748b", fontSize: "12px", margin: "3px 0 0" }}>
-											Las actividades asociadas no se borrarán.
+										<p
+											style={{
+												color: "#f87171",
+												fontSize: "12px",
+												margin: "3px 0 0",
+												fontWeight: 600,
+											}}
+										>
+											Acción irreversible
 										</p>
 									</div>
 								</div>
@@ -1045,32 +1129,71 @@ export default function OrganizationView({
 									<X size={15} />
 								</button>
 							</div>
-							<p
+							{/* Cascade explanation */}
+							<div
 								style={{
-									color: "#cbd5e1",
-									fontSize: "14px",
-									background: "#0f172a",
-									padding: "10px 14px",
-									borderRadius: "8px",
-									margin: 0,
+									background: "rgba(239,68,68,0.06)",
+									border: "1px solid rgba(239,68,68,0.18)",
+									borderRadius: "10px",
+									padding: "12px 14px",
+									display: "flex",
+									flexDirection: "column",
+									gap: "6px",
 								}}
 							>
-								¿Eliminar <strong style={{ color: "#f1f5f9" }}>{orgConfirmDelete}</strong> de la
-								lista de materias?
-							</p>
+								<p style={{ margin: 0, fontSize: "13px", color: "#f1f5f9", fontWeight: 600 }}>
+									Al eliminar <strong style={{ color: "#f87171" }}>{orgConfirmDelete}</strong> se
+									borrarán en cascada:
+								</p>
+								<ul
+									style={{
+										margin: 0,
+										padding: "0 0 0 16px",
+										display: "flex",
+										flexDirection: "column",
+										gap: "4px",
+									}}
+								>
+									<li style={{ fontSize: "12.5px", color: "#fca5a5" }}>
+										Todas las actividades de esta materia
+									</li>
+									<li style={{ fontSize: "12.5px", color: "#fca5a5" }}>
+										Todas las subtareas de esas actividades
+									</li>
+								</ul>
+								<p
+									style={{
+										margin: "4px 0 0",
+										fontSize: "11.5px",
+										color: "#ef4444",
+										fontWeight: 700,
+									}}
+								>
+									Esta acción no se puede deshacer.
+								</p>
+							</div>
 							<div style={{ display: "flex", gap: "8px" }}>
 								<button
-									onClick={() => {
-										onRemoveSubject(orgConfirmDelete);
-										setOrgConfirmDelete(null);
+									onClick={async () => {
+										setSubjectDeleteLoading(true);
+										try {
+											await onRemoveSubject(orgConfirmDelete!);
+											setOrgConfirmDelete(null);
+											toast.success("Materia eliminada");
+										} catch {
+											toast.error("No se pudo eliminar la materia.");
+										} finally {
+											setSubjectDeleteLoading(false);
+										}
 									}}
+									disabled={subjectDeleteLoading}
 									className="modal-btn-danger"
 									style={{
 										flex: 1,
 										padding: "11px 14px",
 										borderRadius: "8px",
 										border: "none",
-										cursor: "pointer",
+										cursor: subjectDeleteLoading ? "wait" : "pointer",
 										fontSize: "13px",
 										fontWeight: 700,
 										background: "#ef4444",
@@ -1079,18 +1202,26 @@ export default function OrganizationView({
 										alignItems: "center",
 										justifyContent: "center",
 										gap: "7px",
+										opacity: subjectDeleteLoading ? 0.7 : 1,
+										fontFamily: "inherit",
 									}}
 								>
-									<Trash2 size={13} /> Eliminar
+									{subjectDeleteLoading ? (
+										<Loader2 size={13} className="spinner" />
+									) : (
+										<Trash2 size={13} />
+									)}
+									{subjectDeleteLoading ? "Eliminando..." : "Sí, eliminar todo"}
 								</button>
 								<button
-									onClick={() => setOrgConfirmDelete(null)}
+									onClick={() => !subjectDeleteLoading && setOrgConfirmDelete(null)}
+									disabled={subjectDeleteLoading}
 									className="modal-btn-cancel"
 									style={{
 										padding: "11px 18px",
 										borderRadius: "8px",
 										border: "1px solid #334155",
-										cursor: "pointer",
+										cursor: subjectDeleteLoading ? "not-allowed" : "pointer",
 										fontSize: "13px",
 										fontWeight: 600,
 										background: "transparent",

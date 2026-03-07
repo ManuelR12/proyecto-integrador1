@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const baseURL = (import.meta.env.VITE_API_BASE_URL as string) ?? "http://127.0.0.1:8000/";
+const baseURL =
+	(import.meta.env.VITE_API_BASE_URL as string) ?? "https://proyecto-integrador-as97.onrender.com/";
 
 const client = axios.create({
 	baseURL,

@@ -6,10 +6,17 @@ import "./Dashboard.css";
 interface SubjectFormModalProps {
 	mode: "add" | "rename";
 	current?: string;
+	isLoading?: boolean;
 	onClose: () => void;
 	onConfirm: (name: string) => void;
 }
-export function SubjectFormModal({ mode, current, onClose, onConfirm }: SubjectFormModalProps) {
+export function SubjectFormModal({
+	mode,
+	current,
+	isLoading = false,
+	onClose,
+	onConfirm,
+}: SubjectFormModalProps) {
 	const [value, setValue] = useState(current ?? "");
 	const inputRef = useRef<HTMLInputElement>(null);
 	useEffect(() => {
@@ -36,27 +43,73 @@ export function SubjectFormModal({ mode, current, onClose, onConfirm }: SubjectF
 				display: "flex",
 				flexDirection: "column",
 				gap: "16px",
-				boxShadow: "0 25px 60px rgba(0,0,0,0.65), inset 0 0 60px rgba(124,92,255,0.03)",
+				boxShadow:
+					"0 25px 60px rgba(0,0,0,0.65), inset 0 0 60px rgba(124,92,255,0.04), 0 0 0 1px rgba(124,92,255,0.06)",
 				animation: "fadeInScale 0.22s cubic-bezier(0.16,1,0.3,1)",
+				overflow: "hidden",
 			}}
 		>
-			<div className="modal-glow-line" />
-			<div className="modal-glow-halo" />
-			<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-				<h3
+			{/* Single soft bloom — wider ellipse, no hard edge */}
+			<div
+				style={{
+					position: "absolute",
+					top: "-20px",
+					left: "-20px",
+					right: "-20px",
+					height: "180px",
+					background:
+						"radial-gradient(ellipse 85% 60% at 50% 0%, rgba(124,92,255,0.18) 0%, rgba(124,92,255,0.06) 50%, transparent 100%)",
+					pointerEvents: "none",
+					zIndex: 1,
+				}}
+			/>
+
+			{/* Header */}
+			<div
+				style={{
+					position: "relative",
+					zIndex: 2,
+					display: "flex",
+					alignItems: "center",
+					gap: "12px",
+				}}
+			>
+				{/* Icon square */}
+				<div
 					style={{
-						color: "#f1f5f9",
-						fontWeight: 700,
-						fontSize: "16px",
+						width: "42px",
+						height: "42px",
+						flexShrink: 0,
+						borderRadius: "13px",
+						background: "linear-gradient(135deg,rgba(124,92,255,0.25),rgba(167,139,250,0.1))",
+						border: "1px solid rgba(124,92,255,0.25)",
 						display: "flex",
 						alignItems: "center",
-						gap: "8px",
-						margin: 0,
+						justifyContent: "center",
+						color: "#c084fc",
+						boxShadow: "0 0 20px rgba(124,92,255,0.18)",
 					}}
 				>
-					<BookOpen size={17} color="#c084fc" />
-					{mode === "add" ? "Nueva materia" : "Renombrar materia"}
-				</h3>
+					<BookOpen size={20} />
+				</div>
+				{/* Title + subtitle */}
+				<div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "2px" }}>
+					<h3
+						style={{
+							color: "#f1f5f9",
+							fontWeight: 700,
+							fontSize: "16px",
+							margin: 0,
+						}}
+					>
+						{mode === "add" ? "Nueva materia" : "Renombrar materia"}
+					</h3>
+					<p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>
+						{mode === "add"
+							? "Agrupa tus actividades por asignatura"
+							: "Escribe el nuevo nombre para esta materia"}
+					</p>
+				</div>
 				<button onClick={onClose} className="modal-close-x" aria-label="Cerrar">
 					<X size={15} />
 				</button>
@@ -87,13 +140,15 @@ export function SubjectFormModal({ mode, current, onClose, onConfirm }: SubjectF
 			<div style={{ display: "flex", gap: "8px" }}>
 				<button
 					onClick={submit}
+					disabled={isLoading}
 					className="modal-btn-primary"
 					style={{
 						flex: 1,
 						padding: "10px 14px",
 						borderRadius: "8px",
 						border: "none",
-						cursor: "pointer",
+						cursor: isLoading ? "wait" : "pointer",
+						fontFamily: "inherit",
 						fontSize: "13px",
 						fontWeight: 700,
 						background: "linear-gradient(135deg,#7c3aed,#6d28d9)",
@@ -103,9 +158,11 @@ export function SubjectFormModal({ mode, current, onClose, onConfirm }: SubjectF
 						justifyContent: "center",
 						gap: "6px",
 						boxShadow: "0 4px 14px rgba(124,58,237,0.28)",
+						opacity: isLoading ? 0.7 : 1,
 					}}
 				>
-					{mode === "add" ? "Guardar" : "Renombrar"}
+					{isLoading ? <Loader2 size={13} className="spinner" /> : null}
+					{isLoading ? "Guardando..." : mode === "add" ? "Guardar" : "Renombrar"}
 				</button>
 				<button
 					onClick={onClose}
@@ -115,6 +172,7 @@ export function SubjectFormModal({ mode, current, onClose, onConfirm }: SubjectF
 						borderRadius: "8px",
 						border: "1px solid #334155",
 						cursor: "pointer",
+						fontFamily: "inherit",
 						fontSize: "13px",
 						fontWeight: 600,
 						background: "transparent",

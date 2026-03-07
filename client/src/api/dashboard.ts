@@ -45,6 +45,12 @@ export interface TodayViewResponse {
 	meta: { n_days: number };
 }
 
+export interface Subject {
+	id: number;
+	name: string;
+	creation_date: string;
+}
+
 /* ============ API CALLS ============ */
 
 export async function fetchMe(): Promise<User> {
@@ -121,4 +127,25 @@ export async function updateSubtask(
 
 export async function deleteSubtask(activityId: number, subtaskId: number): Promise<void> {
 	await client.delete(`/activities/${activityId}/subtasks/${subtaskId}/`);
+}
+
+/* -- Subject endpoints -- */
+
+export async function fetchSubjects(): Promise<Subject[]> {
+	const { data } = await client.get<Subject[]>("/subjects/");
+	return data;
+}
+
+export async function createSubject(name: string): Promise<Subject> {
+	const { data } = await client.post<Subject>("/subjects/", { name });
+	return data;
+}
+
+export async function updateSubject(id: number, name: string): Promise<Subject> {
+	const { data } = await client.patch<Subject>(`/subjects/${id}/`, { name });
+	return data;
+}
+
+export async function deleteSubject(id: number): Promise<void> {
+	await client.delete(`/subjects/${id}/`);
 }

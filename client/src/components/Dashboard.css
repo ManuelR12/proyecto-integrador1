@@ -1758,6 +1758,28 @@
 	}
 }
 
+@keyframes orgSlideDown {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes orgSubtaskSlideDown {
+	from {
+		opacity: 0;
+		transform: translateY(-6px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
 /* ============================================================
    SHARED MODAL UTILITIES
    ============================================================ */

@@ -2,9 +2,13 @@ import React from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { toast, Toaster } from "sonner";
 import Login from "./components/Login";
+import Register from "./components/Register";
+import Landing from "./components/Landing";
 import Dashboard from "./components/Dashboard";
 import client from "./api/client";
 import { isTokenValid, clearAuthStorage } from "./api/auth";
+import ThemeProvider from "./context/ThemeProvider";
+import { useTheme } from "./hooks/useTheme";
 import "./App.css";
 
 /** Ruta protegida: redirige a /login si el token no es válido o expiró. */
@@ -16,6 +20,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 		return <Navigate to="/login" replace />;
 	}
 	return <>{children}</>;
+}
+
+/** Página de registro: redirige a /hoy si ya hay sesión válida. */
+function RegisterPage() {
+	const token = localStorage.getItem("access_token");
+	if (isTokenValid(token)) {
+		return <Navigate to="/hoy" replace />;
+	}
+	// Register component handles navigation internally after success
+	return <Register />;
 }
 
 /** Página de login: redirige a /hoy si ya hay sesión válida. */
@@ -46,13 +60,23 @@ function DashboardPage() {
 
 function App() {
 	return (
+		<ThemeProvider>
+			<AppRoutes />
+		</ThemeProvider>
+	);
+}
+
+function AppRoutes() {
+	const { theme } = useTheme();
+	return (
 		<>
-			<Toaster position="top-right" theme="dark" richColors />
+			<Toaster position="top-right" theme={theme} richColors />
 			<Routes>
-				{/* Landing – espacio reservado para la página principal */}
-				<Route path="/" element={<div>Landing (próximamente)</div>} />
+				{/* Landing */}
+				<Route path="/" element={<Landing />} />
 
 				<Route path="/login" element={<LoginPage />} />
+				<Route path="/registro" element={<RegisterPage />} />
 
 				<Route
 					path="/hoy"

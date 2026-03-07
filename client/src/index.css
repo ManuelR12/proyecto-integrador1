@@ -23,6 +23,13 @@
 	-moz-osx-font-smoothing: grayscale;
 }
 
+/* ── Light theme overrides ── */
+[data-theme="light"] {
+	color-scheme: light;
+	color: #1e1a33;
+	background-color: #f0edfb;
+}
+
 * {
 	box-sizing: border-box;
 	margin: 0;
@@ -34,6 +41,13 @@ body {
 	min-height: 100vh;
 	background-color: #13141c;
 	overflow-x: hidden;
+	transition:
+		background-color 0.45s ease,
+		color 0.45s ease;
+}
+
+[data-theme="light"] body {
+	background-color: #f0edfb;
 }
 
 #root {

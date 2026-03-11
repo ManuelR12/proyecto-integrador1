@@ -257,3 +257,29 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 		if value < 1:
 			raise serializers.ValidationError("max_daily_hours must be at least 1.")
 		return value
+
+
+class ConflictResolveSerializer(serializers.Serializer):
+	ACTION_REDUCE = "reduce_hours"
+	ACTION_RESCHEDULE = "reschedule"
+	ACTION_CHOICES = [ACTION_REDUCE, ACTION_RESCHEDULE]
+
+	subtask_id = serializers.IntegerField()
+	action_type = serializers.ChoiceField(choices=ACTION_CHOICES)
+	new_hours = serializers.IntegerField(min_value=0, required=False)
+	new_date = serializers.DateField(required=False)
+
+	def validate(self, attrs):
+		action_type = attrs["action_type"]
+		errors = {}
+
+		if action_type == self.ACTION_REDUCE and attrs.get("new_hours") is None:
+			errors["new_hours"] = "Required when action_type is 'reduce_hours'."
+
+		if action_type == self.ACTION_RESCHEDULE and attrs.get("new_date") is None:
+			errors["new_date"] = "Required when action_type is 'reschedule'."
+
+		if errors:
+			raise serializers.ValidationError({"errors": errors})
+
+		return attrs

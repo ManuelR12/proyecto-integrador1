@@ -1,13 +1,14 @@
 import logging
 from datetime import date, timedelta
 
+from django.db import transaction
 from django.db.models import Sum
 from django.http import Http404
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework import status, viewsets
-from rest_framework.decorators import api_view
+from rest_framework.decorators import action, api_view
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -16,6 +17,7 @@ from rest_framework.views import APIView
 from .models import Activity, Conflict, Subject, Subtask
 from .serializers import (
 	ActivitySerializer,
+	ConflictResolveSerializer,
 	ConflictSerializer,
 	SubjectSerializer,
 	SubtaskSerializer,
@@ -31,9 +33,11 @@ logger = logging.getLogger(__name__)
 def _evaluate_day_conflicts(user, target_date: date) -> None:
 	"""Create, update, or auto-resolve a Conflict for a given user/date after any subtask change."""
 	total: int = int(
-		Subtask.objects.filter(activity_id__user=user, target_date=target_date).aggregate(
-			total=Sum("estimated_hours")
-		)["total"]
+		Subtask.objects.filter(
+			activity_id__user=user,
+			target_date=target_date,
+			status__in=["pending", "in_progress"],
+		).aggregate(total=Sum("estimated_hours"))["total"]
 		or 0
 	)
 	if total > user.max_daily_hours:
@@ -1033,3 +1037,84 @@ class ConflictViewSet(viewsets.ReadOnlyModelViewSet):
 	)
 	def retrieve(self, request, *args, **kwargs):
 		return super().retrieve(request, *args, **kwargs)
+
+	@extend_schema(
+		summary="Resolve conflict",
+		description=(
+			"Apply a resolution action to a pending conflict. "
+			"Supported actions: 'reduce_hours' (requires new_hours) "
+			"and 'reschedule' (requires new_date). "
+			"Records the resolution in ConflictResolution and re-evaluates affected dates."
+		),
+		request=ConflictResolveSerializer,
+		responses={200: ConflictSerializer},
+		examples=[
+			OpenApiExample(
+				"Reduce hours",
+				value={"subtask_id": 76, "action_type": "reduce_hours", "new_hours": 2},
+				request_only=True,
+			),
+			OpenApiExample(
+				"Reschedule",
+				value={"subtask_id": 76, "action_type": "reschedule", "new_date": "2026-03-12"},
+				request_only=True,
+			),
+		],
+	)
+	@action(detail=True, methods=["post"], url_path="resolve")
+	def resolve(self, request, pk=None):
+		conflict = self.get_object()
+
+		if conflict.status == "resolved":
+			return Response(
+				{"errors": {"conflict": "This conflict is already resolved."}},
+				status=status.HTTP_400_BAD_REQUEST,
+			)
+
+		serializer = ConflictResolveSerializer(data=request.data)
+		if not serializer.is_valid():
+			return Response(serializer.errors, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+		data = serializer.validated_data
+		action_type: str = data["action_type"]
+		subtask_id: int = data["subtask_id"]
+
+		try:
+			subtask = Subtask.objects.get(id=subtask_id, activity_id__user=request.user)
+		except Subtask.DoesNotExist:
+			return Response(
+				{"errors": {"subtask_id": "Subtask not found or does not belong to you."}},
+				status=status.HTTP_404_NOT_FOUND,
+			)
+
+		old_date: date = subtask.target_date
+
+		with transaction.atomic():
+			if action_type == "reduce_hours":
+				subtask.estimated_hours = data["new_hours"]
+				subtask.save(update_fields=["estimated_hours", "updated_at"])
+				description = f"Reduced estimated hours to {data['new_hours']}h on {old_date}."
+			else:  # reschedule
+				new_date: date = data["new_date"]
+				subtask.target_date = new_date
+				subtask.save(update_fields=["target_date", "updated_at"])
+				description = f"Rescheduled subtask from {old_date} to {new_date}."
+
+			from .models import ConflictResolution
+
+			# Always log what the user did, even if the conflict isn't fully resolved yet.
+			ConflictResolution.objects.update_or_create(
+				conflict=conflict,
+				defaults={"action": action_type, "description": description},
+			)
+
+		# Re-evaluate the affected date(s). _evaluate_day_conflicts decides
+		# whether to keep the conflict pending (still overloaded) or resolve it.
+		_evaluate_day_conflicts(request.user, old_date)
+		if action_type == "reschedule":
+			_evaluate_day_conflicts(request.user, data["new_date"])
+
+		# Return the conflict's current state so the frontend knows whether
+		# it's fully resolved or still pending with updated planned_hours.
+		conflict.refresh_from_db()
+		return Response(ConflictSerializer(conflict).data, status=status.HTTP_200_OK)

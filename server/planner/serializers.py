@@ -2,7 +2,7 @@ from datetime import date
 
 from rest_framework import serializers
 
-from .models import Activity, Subject, Subtask, User
+from .models import Activity, Conflict, Subject, Subtask, User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -225,3 +225,35 @@ class UserRegistrationSerializer(serializers.Serializer):
 			password=validated_data["password"],
 		)
 		return user
+
+
+class ConflictSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Conflict
+		fields = [
+			"id",
+			"affected_date",
+			"planned_hours",
+			"max_allowed_hours",
+			"status",
+			"detected_at",
+		]
+		read_only_fields = [
+			"id",
+			"affected_date",
+			"planned_hours",
+			"max_allowed_hours",
+			"status",
+			"detected_at",
+		]
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = User
+		fields = ["max_daily_hours"]
+
+	def validate_max_daily_hours(self, value: int) -> int:
+		if value < 1:
+			raise serializers.ValidationError("max_daily_hours must be at least 1.")
+		return value

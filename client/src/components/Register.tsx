@@ -38,8 +38,13 @@ export default function Register() {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
-		if (!form.username.trim() || !form.password.trim() || !form.passwordConfirm.trim()) {
-			toast.error("Por favor, completa los campos obligatorios.");
+		if (
+			!form.username.trim() ||
+			!form.email.trim() ||
+			!form.password.trim() ||
+			!form.passwordConfirm.trim()
+		) {
+			toast.error("Por favor, completa todos los campos obligatorios.");
 			return;
 		}
 		if (form.password !== form.passwordConfirm) {
@@ -52,24 +57,15 @@ export default function Register() {
 		try {
 			await client.post("/register/", {
 				username: form.username,
-				email: form.email,
+				email: form.email.trim(),
 				password: form.password,
 				password_confirm: form.passwordConfirm,
 			});
 
-			// Auto-login after successful registration
-			const tokenRes = await client.post("/api/token/", {
-				username: form.username,
-				password: form.password,
-			});
-			const { access, refresh } = tokenRes.data as { access: string; refresh: string };
-			localStorage.setItem("access_token", access);
-			localStorage.setItem("refresh_token", refresh);
-			client.defaults.headers.common["Authorization"] = `Bearer ${access}`;
-
 			setCardState("success");
-			toast.success("¡Cuenta creada! Bienvenido.");
-			setTimeout(() => navigate("/hoy"), 700);
+			setIsLoading(false);
+			toast.success("¡Cuenta creada! Ahora inicia sesión.");
+			setTimeout(() => navigate("/login"), 700);
 		} catch (error: unknown) {
 			const errResponse =
 				typeof error === "object" && error !== null && "response" in error
@@ -191,7 +187,7 @@ export default function Register() {
 
 					<div className="lp-field">
 						<label className="lp-field__label" htmlFor="reg-email">
-							Email <span style={{ fontWeight: 400, opacity: 0.6 }}>(opcional)</span>
+							Email *
 						</label>
 						<div className="lp-field__wrap">
 							<Mail className="lp-field__icon" size={16} strokeWidth={1.5} aria-hidden="true" />
@@ -204,6 +200,7 @@ export default function Register() {
 								value={form.email}
 								onChange={handleChange}
 								disabled={isLoading}
+								required
 								autoComplete="email"
 							/>
 						</div>

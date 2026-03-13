@@ -199,7 +199,10 @@ class ActivityViewSet(viewsets.ModelViewSet):
 		return Activity.objects.filter(user=self.request.user)
 
 	def perform_create(self, serializer):
-		serializer.save(user=self.request.user)
+		activity = serializer.save(user=self.request.user)
+		affected_dates = list(activity.subtasks.values_list("target_date", flat=True).distinct())
+		for affected_date in affected_dates:
+			_evaluate_day_conflicts(self.request.user, affected_date)
 
 	@extend_schema(
 		summary="Create activity",
@@ -256,7 +259,12 @@ class ActivityViewSet(viewsets.ModelViewSet):
 	def destroy(self, request, *args, **kwargs):
 		try:
 			activity = self.get_object()
+			affected_dates = list(
+				activity.subtasks.values_list("target_date", flat=True).distinct()
+			)
 			activity.delete()
+			for affected_date in affected_dates:
+				_evaluate_day_conflicts(request.user, affected_date)
 			return Response(status=status.HTTP_204_NO_CONTENT)
 
 		except Http404 as err:
@@ -959,10 +967,28 @@ class SubjectViewSet(viewsets.ModelViewSet):
 	def destroy(self, request, *args, **kwargs):
 		try:
 			subject = self.get_object()
+			affected_dates = list(
+				Subtask.objects.filter(
+					activity_id__course_name=subject.name, activity_id__user=request.user
+				)
+				.values_list("target_date", flat=True)
+				.distinct()
+			)
+			affected_dates.extend(
+				list(
+					Subtask.objects.filter(
+						activity_id__subject=subject, activity_id__user=request.user
+					)
+					.values_list("target_date", flat=True)
+					.distinct()
+				)
+			)
 			# Cascade: delete all activities matching by name or FK (subtasks cascade automatically)
 			Activity.objects.filter(course_name=subject.name).delete()
 			Activity.objects.filter(subject=subject).delete()
 			subject.delete()
+			for affected_date in set(affected_dates):
+				_evaluate_day_conflicts(request.user, affected_date)
 			return Response(status=status.HTTP_204_NO_CONTENT)
 		except Http404 as err:
 			raise NotFound(detail={"errors": {"resource": "Subject not found"}}) from err

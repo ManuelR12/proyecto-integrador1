@@ -6,14 +6,17 @@ from django.http import Http404
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
+from rest_framework import serializers as drf_serializers
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .models import Activity, Conflict, Subject, Subtask
+from .models import Activity, Conflict, Subject, Subtask, User
 from .serializers import (
 	ActivitySerializer,
 	ConflictSerializer,
@@ -67,6 +70,35 @@ def _evaluate_day_conflicts(user, target_date: date) -> None:
 )
 def health_check():
 	return Response({"status": "ok"})
+
+
+class EmailOrUsernameTokenObtainPairSerializer(TokenObtainPairSerializer):
+	# Keep `username` optional for backward compatibility and accept `identifier` too.
+	username = drf_serializers.CharField(required=False, allow_blank=True, write_only=True)
+	identifier = drf_serializers.CharField(required=False, allow_blank=True, write_only=True)
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.fields[self.username_field].required = False
+		self.fields[self.username_field].allow_blank = True
+
+	def validate(self, attrs):
+		raw_identifier = (attrs.get("identifier") or attrs.get("username") or "").strip()
+		if not raw_identifier:
+			raise ValidationError({"errors": {"identifier": "Username or email is required."}})
+
+		attrs["username"] = raw_identifier
+		if "@" in raw_identifier:
+			user = User.objects.filter(email__iexact=raw_identifier).only("username").first()
+			if user:
+				attrs["username"] = user.username
+
+		attrs.pop("identifier", None)
+		return super().validate(attrs)
+
+
+class EmailOrUsernameTokenObtainPairView(TokenObtainPairView):
+	serializer_class = EmailOrUsernameTokenObtainPairSerializer
 
 
 class RegisterView(APIView):

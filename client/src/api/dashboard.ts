@@ -38,11 +38,25 @@ export interface Subtask {
 	course_name?: string;
 }
 
+export type TodayStatusFilter = "vencidas" | "hoy" | "proximas";
+
 export interface TodayViewResponse {
 	overdue: Subtask[];
 	today: Subtask[];
 	upcoming: Subtask[];
-	meta: { n_days: number };
+	meta: {
+		n_days: number;
+		filters: {
+			courseId: number | null;
+			status: TodayStatusFilter | null;
+		};
+	};
+}
+
+export interface TodayViewParams {
+	nDays?: number;
+	courseId?: number;
+	status?: TodayStatusFilter;
 }
 
 export interface Subject {
@@ -90,9 +104,12 @@ export async function deleteActivity(id: number): Promise<void> {
 	await client.delete(`/activities/${id}/`);
 }
 
-export async function fetchTodayView(nDays?: number): Promise<TodayViewResponse> {
-	const params = nDays !== undefined ? { n_days: nDays } : {};
-	const { data } = await client.get<TodayViewResponse>("/today/", { params });
+export async function fetchTodayView(params?: TodayViewParams): Promise<TodayViewResponse> {
+	const query: Record<string, string | number> = {};
+	if (params?.nDays !== undefined) query.n_days = params.nDays;
+	if (params?.courseId !== undefined) query.courseId = params.courseId;
+	if (params?.status !== undefined) query.status = params.status;
+	const { data } = await client.get<TodayViewResponse>("/today/", { params: query });
 	return data;
 }
 

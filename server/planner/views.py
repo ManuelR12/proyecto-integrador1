@@ -700,21 +700,116 @@ class SubtaskViewSet(viewsets.ModelViewSet):
 			)
 
 
+_VALID_TODAY_STATUSES = frozenset({"vencidas", "hoy", "proximas"})
+
+
 class TodayView(APIView):
 	permission_classes = [IsAuthenticated]
 
+	@staticmethod
+	def _bad_request(field: str, message: str) -> Response:
+		return Response({"errors": {field: message}}, status=status.HTTP_400_BAD_REQUEST)
+
+	def _parse_today_filters(self, request):
+		n_days_param = request.query_params.get("n_days")
+		n_days = 7
+		if n_days_param is not None:
+			try:
+				n_days = int(n_days_param)
+				if n_days < 0:
+					raise ValueError
+			except ValueError:
+				return self._bad_request("n_days", "Must be a non-negative integer.")
+
+		course_id_param = request.query_params.get("courseId")
+		course_id = None
+		if course_id_param is not None:
+			try:
+				course_id = int(course_id_param)
+				if course_id <= 0:
+					raise ValueError
+			except ValueError:
+				return self._bad_request("courseId", "Must be a positive integer.")
+
+		status_param = request.query_params.get("status")
+		if status_param is not None and status_param not in _VALID_TODAY_STATUSES:
+			return self._bad_request(
+				"status",
+				"Invalid value. Must be one of: " + ", ".join(sorted(_VALID_TODAY_STATUSES)),
+			)
+
+		return n_days, course_id, status_param
+
+	@staticmethod
+	def _build_today_buckets(qs, today, upcoming_limit, status_param):
+		show_all = status_param is None
+		overdue = (
+			list(qs.filter(target_date__lt=today).order_by("target_date", "estimated_hours"))
+			if show_all or status_param == "vencidas"
+			else []
+		)
+		today_tasks = (
+			list(qs.filter(target_date=today).order_by("estimated_hours"))
+			if show_all or status_param == "hoy"
+			else []
+		)
+		upcoming = (
+			list(
+				qs.filter(target_date__gt=today, target_date__lte=upcoming_limit).order_by(
+					"target_date", "estimated_hours"
+				)
+			)
+			if show_all or status_param == "proximas"
+			else []
+		)
+
+		return overdue, today_tasks, upcoming
+
 	@extend_schema(
 		summary="Today view",
-		description=("Return overdue, today and upcoming subtasks. Optional query param `n_days`."),
+		description=(
+			"Return overdue, today and upcoming subtasks for the authenticated user.\n\n"
+			"Optional filters:\n"
+			"- `n_days`: lookahead window for *proximas* (default 7, non-negative integer).\n"
+			"- `courseId`: filter by subject/course ID (positive integer).\n"
+			"- `status`: restrict to a single bucket — `vencidas`, `hoy`, or `proximas`.\n\n"
+			"Ordering: overdue → oldest first; today → least hours first; upcoming → nearest first."
+		),
+		parameters=[
+			OpenApiParameter(
+				"n_days",
+				OpenApiTypes.INT,
+				OpenApiParameter.QUERY,
+				required=False,
+				description="Lookahead days for upcoming subtasks (default: 7).",
+			),
+			OpenApiParameter(
+				"courseId",
+				OpenApiTypes.INT,
+				OpenApiParameter.QUERY,
+				required=False,
+				description="Filter subtasks to activities belonging to this subject/course ID.",
+			),
+			OpenApiParameter(
+				"status",
+				OpenApiTypes.STR,
+				OpenApiParameter.QUERY,
+				required=False,
+				enum=["vencidas", "hoy", "proximas"],
+				description=(
+					"Return only one bucket: vencidas (overdue), hoy (today), proximas (upcoming)."
+				),
+			),
+		],
 		responses=OpenApiTypes.OBJECT,
 		examples=[
 			OpenApiExample(
-				"Today example",
+				"All buckets",
 				value={
 					"overdue": [],
 					"today": [],
 					"upcoming": [],
-					"meta": {"n_days": 7},
+					"meta": {"n_days": 7, "filters": {"courseId": None, "status": None}},
 				},
 				response_only=True,
 			),
@@ -722,54 +817,41 @@ class TodayView(APIView):
 	)
 	def get(self, request):
 		try:
-			n_days_param = request.query_params.get("n_days")
-
-			if n_days_param is None:
-				n_days = 7
-			else:
-				try:
-					n_days = int(n_days_param)
-					if n_days < 0:
-						raise ValueError
-				except ValueError as err:
-					raise ValidationError(
-						{"errors": {"n_days": "Must be a non-negative integer."}}
-					) from err
+			parsed_filters = self._parse_today_filters(request)
+			if isinstance(parsed_filters, Response):
+				return parsed_filters
+			n_days, course_id, status_param = parsed_filters
 
 			today = timezone.localdate()
 			upcoming_limit = today + timedelta(days=n_days)
 
-			subtasks = Subtask.objects.filter(activity_id__user=request.user).select_related(
+			# Base queryset — always scoped to the authenticated user
+			qs = Subtask.objects.filter(activity_id__user=request.user).select_related(
 				"activity_id"
 			)
 
-			overdue = []
-			today_tasks = []
-			upcoming = []
+			# Apply courseId filter at DB level
+			if course_id is not None:
+				qs = qs.filter(activity_id__subject_id=course_id)
 
-			for subtask in subtasks:
-				if subtask.target_date < today:
-					overdue.append(subtask)
-				elif subtask.target_date == today:
-					today_tasks.append(subtask)
-				elif today < subtask.target_date <= upcoming_limit:
-					upcoming.append(subtask)
-
-			overdue.sort(key=lambda s: (s.target_date, s.estimated_hours))
-			today_tasks.sort(key=lambda s: (s.estimated_hours,))
-			upcoming.sort(key=lambda s: (s.target_date, s.estimated_hours))
+			overdue, today_tasks, upcoming = self._build_today_buckets(
+				qs, today, upcoming_limit, status_param
+			)
 
 			return Response(
 				{
 					"overdue": TodaySubtaskSerializer(overdue, many=True).data,
 					"today": TodaySubtaskSerializer(today_tasks, many=True).data,
 					"upcoming": TodaySubtaskSerializer(upcoming, many=True).data,
-					"meta": {"n_days": n_days},
+					"meta": {
+						"n_days": n_days,
+						"filters": {
+							"courseId": course_id,
+							"status": status_param,
+						},
+					},
 				}
 			)
-
-		except ValidationError:
-			raise
 
 		except Exception:
 			logger.exception("Unexpected error generating today view")

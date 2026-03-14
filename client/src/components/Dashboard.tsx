@@ -352,6 +352,21 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 		setTodayData({ overdue: today.overdue, today: today.today, upcoming: today.upcoming });
 	}, []);
 
+	const refreshTodayFromOrganizationMutation = useCallback(async () => {
+		try {
+			const todayView = await fetchTodayView();
+			setTodayData({
+				overdue: todayView.overdue,
+				today: todayView.today,
+				upcoming: todayView.upcoming,
+			});
+		} catch (err) {
+			console.warn("No se pudo refrescar la vista de hoy tras mutar subtareas:", err);
+		} finally {
+			void refreshConflicts();
+		}
+	}, [refreshConflicts]);
+
 	const applySubtaskPatchLocally = useCallback(
 		(subtaskId: number, patch: Partial<Pick<Subtask, "estimated_hours" | "target_date">>) => {
 			setActivities((prev) =>
@@ -1105,26 +1120,6 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 					</button>
 				</div>
 
-				{todayPendingConflict && (
-					<div className="today-conflict-banner" role="status" aria-live="polite">
-						<AlertTriangle size={12} className="today-conflict-icon-inline" />
-						<span className="today-conflict-inline-text">
-							Conflicto hoy: {todayPendingConflict.planned_hours}h/
-							{todayPendingConflict.max_allowed_hours}h
-						</span>
-						<button
-							type="button"
-							className="today-conflict-action"
-							onClick={() => {
-								setConflictsOpen(true);
-								if (activeNav !== "today") navigate("/hoy");
-							}}
-						>
-							Revisar
-						</button>
-					</div>
-				)}
-
 				<button
 					className="sidebar-conflicts-btn"
 					disabled={sidebarConflictsLoading}
@@ -1465,6 +1460,9 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 								onActivityUpdate={(updated) =>
 									setActivities((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
 								}
+								onSubtaskMutated={() => {
+									void refreshTodayFromOrganizationMutation();
+								}}
 								dateLoadMap={dateLoadMap}
 								conflictDates={conflictDates}
 								maxDailyHours={capacityTotal}

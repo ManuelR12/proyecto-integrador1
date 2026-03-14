@@ -2,18 +2,28 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.utils import OpenApiExample, extend_schema, extend_schema_view
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
+
+from planner.views import EmailOrUsernameTokenObtainPairView
 
 # add schema examples for token endpoints
-TokenObtainPairView = extend_schema_view(
+EmailOrUsernameTokenObtainPairView = extend_schema_view(
 	post=extend_schema(
 		summary="Obtain token pair",
-		description="Obtain access and refresh JWT tokens using username/password.",
+		description=(
+			"Obtain access and refresh JWT tokens using username or email plus password. "
+			"Supports `identifier` (preferred) and `username` (backward compatible)."
+		),
 		request={"type": "object"},
 		responses={200: {"type": "object"}},
 		examples=[
 			OpenApiExample(
-				"Token request",
+				"Token request (identifier)",
+				value={"identifier": "juan@example.com", "password": "secret"},
+				request_only=True,
+			),
+			OpenApiExample(
+				"Token request (username)",
 				value={"username": "juan", "password": "secret"},
 				request_only=True,
 			),
@@ -24,7 +34,7 @@ TokenObtainPairView = extend_schema_view(
 			),
 		],
 	)
-)(TokenObtainPairView)
+)(EmailOrUsernameTokenObtainPairView)
 
 TokenRefreshView = extend_schema_view(
 	post=extend_schema(
@@ -51,7 +61,7 @@ urlpatterns = [
 	path("admin/", admin.site.urls),
 	path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
 	path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
-	path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+	path("api/token/", EmailOrUsernameTokenObtainPairView.as_view(), name="token_obtain_pair"),
 	path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 	path("", include("planner.urls")),
 ]

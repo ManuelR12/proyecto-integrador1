@@ -49,7 +49,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
 		setIsLoading(true);
 		try {
-			const response = await client.post("/api/token/", { username, password });
+			const response = await client.post("/api/token/", {
+				identifier: username.trim(),
+				password,
+			});
 			const { access, refresh } = response.data as { access: string; refresh: string };
 
 			setAuthTokens(access, refresh);
@@ -66,7 +69,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 					: undefined;
 
 			if (status === 401) {
-				toast.error("Usuario o contraseña incorrectos.");
+				toast.error("Usuario/correo o contraseña incorrectos.");
 			} else {
 				toast.error("Error de conexión. Intenta más tarde.");
 			}
@@ -167,7 +170,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 				<form onSubmit={handleSubmit} className="lp-form" noValidate>
 					<div className="lp-field">
 						<label className="lp-field__label" htmlFor="username">
-							Usuario
+							Usuario o correo
 						</label>
 						<div className="lp-field__wrap">
 							<User className="lp-field__icon" size={16} strokeWidth={1.5} aria-hidden="true" />
@@ -175,7 +178,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 								id="username"
 								type="text"
 								className="lp-field__input"
-								placeholder="Tu usuario"
+								placeholder="Tu usuario o correo"
 								value={username}
 								onChange={(e) => setUsername(e.target.value)}
 								disabled={isLoading}

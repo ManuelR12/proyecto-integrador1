@@ -352,31 +352,31 @@ export default function TodayKanban({
 		icon: React.JSX.Element;
 		sortHint: { icon: React.JSX.Element; text: string };
 	}[] = [
-			{
-				group: "overdue" as KanbanGroup,
-				label: "Vencidas",
-				items: sortSubtasks("overdue", kanban.overdue),
-				accent: "#f87171",
-				icon: <AlertTriangle size={13} />,
-				sortHint: { icon: <ArrowUp size={12} />, text: "más antiguas primero" },
-			},
-			{
-				group: "today" as KanbanGroup,
-				label: "Para hoy",
-				items: sortSubtasks("today", kanban.today),
-				accent: "#c084fc",
-				icon: <CalendarCheck size={13} />,
-				sortHint: { icon: <Zap size={12} />, text: "más rápidas primero" },
-			},
-			{
-				group: "upcoming" as KanbanGroup,
-				label: "Próximas",
-				items: sortSubtasks("upcoming", kanban.upcoming),
-				accent: "#60a5fa",
-				icon: <CalendarClock size={13} />,
-				sortHint: { icon: <ArrowRight size={12} />, text: "más cercanas primero" },
-			},
-		];
+		{
+			group: "overdue" as KanbanGroup,
+			label: "Vencidas",
+			items: sortSubtasks("overdue", kanban.overdue),
+			accent: "#f87171",
+			icon: <AlertTriangle size={13} />,
+			sortHint: { icon: <ArrowUp size={12} />, text: "más antiguas primero" },
+		},
+		{
+			group: "today" as KanbanGroup,
+			label: "Para hoy",
+			items: sortSubtasks("today", kanban.today),
+			accent: "#c084fc",
+			icon: <CalendarCheck size={13} />,
+			sortHint: { icon: <Zap size={12} />, text: "más rápidas primero" },
+		},
+		{
+			group: "upcoming" as KanbanGroup,
+			label: "Próximas",
+			items: sortSubtasks("upcoming", kanban.upcoming),
+			accent: "#60a5fa",
+			icon: <CalendarClock size={13} />,
+			sortHint: { icon: <ArrowRight size={12} />, text: "más cercanas primero" },
+		},
+	];
 
 	return (
 		<>
@@ -581,66 +581,78 @@ export default function TodayKanban({
 										animation: "dropdownOpen 0.15s cubic-bezier(0.16,1,0.3,1)",
 									}}
 								>
-									{toolbarSelect.type === "status" ? (
-										([
-											["all", "Todos"],
-											["pending", "Pendiente"],
-											["in_progress", "En progreso"],
-											["completed", "Completada"],
-										] as const).map(([value, label]) => (
-											<button
-												key={value}
-												onClick={() => {
-													setStatusFilter(value);
-													setToolbarSelect(null);
-												}}
-												style={{
-													width: "100%",
-													padding: "9px 12px",
-													border: "none",
-													textAlign: "left",
-													fontSize: "12px",
-													fontFamily: "inherit",
-													cursor: "pointer",
-													background: statusFilter === value ? "rgba(124,92,255,0.18)" : "transparent",
-													color: statusFilter === value ? (isDark ? "#e9d5ff" : "#5b21b6") : tv.dropTxt,
-												}}
-											>
-												Estado: {label}
-											</button>
-										))
-									) : (
-										[
-											{ value: "all", label: "Todos" },
-											...availableCourseNames.map((name) => ({ value: name, label: name })),
-										].map((item) => (
-											<button
-												key={item.value}
-												onClick={() => {
-													setCourseFilter(item.value);
-													setToolbarSelect(null);
-												}}
-												style={{
-													width: "100%",
-													padding: "9px 12px",
-													border: "none",
-													textAlign: "left",
-													fontSize: "12px",
-													fontFamily: "inherit",
-													cursor: "pointer",
-													background: courseFilter === item.value ? "rgba(124,92,255,0.18)" : "transparent",
-													color: courseFilter === item.value ? (isDark ? "#e9d5ff" : "#5b21b6") : tv.dropTxt,
-													maxWidth: "280px",
-													overflow: "hidden",
-													textOverflow: "ellipsis",
-													whiteSpace: "nowrap",
-												}}
-												title={item.value === "all" ? "Todos" : item.value}
-											>
-												Curso: {item.label}
-											</button>
-										))
-									)}
+									{toolbarSelect.type === "status"
+										? (
+												[
+													["all", "Todos"],
+													["pending", "Pendiente"],
+													["in_progress", "En progreso"],
+													["completed", "Completada"],
+												] as const
+											).map(([value, label]) => (
+												<button
+													key={value}
+													onClick={() => {
+														setStatusFilter(value);
+														setToolbarSelect(null);
+													}}
+													style={{
+														width: "100%",
+														padding: "9px 12px",
+														border: "none",
+														textAlign: "left",
+														fontSize: "12px",
+														fontFamily: "inherit",
+														cursor: "pointer",
+														background:
+															statusFilter === value ? "rgba(124,92,255,0.18)" : "transparent",
+														color:
+															statusFilter === value
+																? isDark
+																	? "#e9d5ff"
+																	: "#5b21b6"
+																: tv.dropTxt,
+													}}
+												>
+													Estado: {label}
+												</button>
+											))
+										: [
+												{ value: "all", label: "Todos" },
+												...availableCourseNames.map((name) => ({ value: name, label: name })),
+											].map((item) => (
+												<button
+													key={item.value}
+													onClick={() => {
+														setCourseFilter(item.value);
+														setToolbarSelect(null);
+													}}
+													style={{
+														width: "100%",
+														padding: "9px 12px",
+														border: "none",
+														textAlign: "left",
+														fontSize: "12px",
+														fontFamily: "inherit",
+														cursor: "pointer",
+														background:
+															courseFilter === item.value ? "rgba(124,92,255,0.18)" : "transparent",
+														color:
+															courseFilter === item.value
+																? isDark
+																	? "#e9d5ff"
+																	: "#5b21b6"
+																: tv.dropTxt,
+														maxWidth: "280px",
+														overflow: "hidden",
+														textOverflow: "ellipsis",
+														whiteSpace: "nowrap",
+													}}
+													title={item.value === "all" ? "Todos" : item.value}
+												>
+													Curso: {item.label}
+												</button>
+											))}
 								</div>
 							</>,
 							document.body,
@@ -917,9 +929,9 @@ export default function TodayKanban({
 													isSelected
 														? null
 														: {
-															subtask: kanban[group].find((s) => s.id === subtask.id) ?? subtask,
-															group,
-														},
+																subtask: kanban[group].find((s) => s.id === subtask.id) ?? subtask,
+																group,
+															},
 												)
 											}
 											onKeyDown={(e) => {

@@ -31,6 +31,7 @@ interface OrgViewProps {
 	onRemoveSubject: (name: string) => Promise<void>;
 	onRenameSubject: (oldName: string, newName: string) => Promise<void>;
 	onActivityUpdate: (updated: Activity) => void;
+	onSubtaskMutated?: () => void;
 	dateLoadMap?: Record<string, number>;
 	conflictDates?: string[];
 	maxDailyHours?: number;
@@ -49,6 +50,7 @@ export default function OrganizationView({
 	onRemoveSubject,
 	onRenameSubject,
 	onActivityUpdate,
+	onSubtaskMutated,
 	dateLoadMap = {},
 	conflictDates = [],
 	maxDailyHours = 0,
@@ -1045,6 +1047,10 @@ export default function OrganizationView({
 				<SubtaskManagerModal
 					activityId={subtaskModalActivity.id}
 					activityTitle={subtaskModalActivity.title}
+					activityDueDate={subtaskModalActivity.due_date}
+					dateLoadMap={dateLoadMap}
+					conflictDates={conflictDates}
+					maxDailyHours={maxDailyHours}
 					open={true}
 					onSubtasksChange={(items) => {
 						setSubtaskStateByActivity((prev) => ({
@@ -1059,6 +1065,7 @@ export default function OrganizationView({
 								0,
 							),
 						});
+						onSubtaskMutated?.();
 					}}
 					onClose={async () => {
 						const act = subtaskModalActivity;

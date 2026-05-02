@@ -131,10 +131,10 @@ class ActivitySerializer(serializers.ModelSerializer):
 		return attrs
 
 	def get_total_estimated_hours(self, obj) -> int:
-		# Sum estimated_hours across related subtasks. If there are no subtasks,
-		# allow a client-provided hint (stored temporarily on the instance during create)
-		if obj.subtasks.exists():
-			return int(sum(s.estimated_hours for s in obj.subtasks.all()))
+		# Sum estimated_hours across related subtasks.
+		subtasks = obj.subtasks.all()
+		if len(subtasks) > 0:
+			return int(sum(s.estimated_hours for s in subtasks))
 		# fallback to any client-provided value stored on the instance
 		client_val = getattr(obj, "_client_total_estimated_hours", None)
 		if client_val is not None:

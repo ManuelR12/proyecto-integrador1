@@ -62,6 +62,7 @@ import {
 import OrganizationView from "@/components/views/OrganizationView";
 import TodayKanban from "@/components/views/TodayView";
 import ProgressView from "@/components/views/ProgressView";
+import OnboardingTour from "@/components/OnboardingTour";
 import ConflictModal, {
 	type ConflictInfo,
 	type ConflictModalItem,
@@ -830,6 +831,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
 	return (
 		<div className="dashboard" data-testid="dashboard-container">
+			<OnboardingTour />
 			{/* Confirm delete modal */}
 			{confirmDelete &&
 				createPortal(
@@ -1124,7 +1126,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 				)}
 
 				{/* Navigation */}
-				<nav className="sidebar-nav" data-testid="dashboard-nav">
+				<nav id="tour-nav" className="sidebar-nav" data-testid="dashboard-nav">
 					<button
 						className={`nav-item ${activeNav === "today" ? "active" : ""}`}
 						onClick={() => navigate("/hoy")}
@@ -1155,7 +1157,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 				<div className="sidebar-spacer" />
 
 				{/* Capacity */}
-				<div className="sidebar-capacity">
+				<div id="tour-capacity" className="sidebar-capacity">
 					<div className="capacity-header">
 						<span className="capacity-label">Capacidad</span>
 						{sidebarCapacityLoading ? (
@@ -1192,6 +1194,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 				</div>
 
 				<button
+					id="tour-conflicts"
 					className="sidebar-conflicts-btn"
 					disabled={sidebarConflictsLoading}
 					data-testid="dashboard-conflicts-btn"
@@ -1227,7 +1230,9 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 				{/* Branding */}
 				<div className="sidebar-brand">
 					<img src={lumaLogo} alt="Luma" className="sidebar-logo" />
-					<ThemeToggle className="sidebar-brand-toggle" qaId="dashboard-theme-toggle-btn" />
+					<div id="tour-theme">
+						<ThemeToggle className="sidebar-brand-toggle" qaId="dashboard-theme-toggle-btn" />
+					</div>
 				</div>
 			</aside>
 
@@ -1267,6 +1272,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 											className="btn-add"
 											style={{ background: "#334155", border: "1px solid #475569" }}
 											onClick={() => setSubjectModal({ mode: "add" })}
+											id="tour-org-add-subject"
 											data-testid="dashboard-add-subject-btn"
 										>
 											<BookOpen size={16} />
@@ -1278,6 +1284,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 												setPrefilledSubject("");
 												setCreateOpen(true);
 											}}
+											id="tour-org-add-activity"
 											data-testid="dashboard-create-activity-btn"
 										>
 											<Plus size={16} />
@@ -1400,6 +1407,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 									<button
 										className={`btn-filter ${filtersOpen ? "active" : ""}`}
 										onClick={() => setFiltersOpen(!filtersOpen)}
+										id="tour-org-filters"
 										data-testid="dashboard-filters-btn"
 									>
 										<SlidersHorizontal size={15} />
@@ -1516,7 +1524,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 									</div>
 								</div>
 
-								<div className={`search-wrapper ${searchOpen ? "open" : ""}`}>
+								<div id="tour-search" className={`search-wrapper ${searchOpen ? "open" : ""}`}>
 									<button
 										className="btn-search"
 										onClick={() => setSearchOpen(!searchOpen)}

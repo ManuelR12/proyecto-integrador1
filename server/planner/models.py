@@ -24,6 +24,10 @@ class Subject(models.Model):
 		verbose_name = "Subject"
 		verbose_name_plural = "Subjects"
 		ordering = ["-creation_date"]
+		indexes = [
+			models.Index(fields=["-creation_date"]),
+			models.Index(fields=["name"]),
+		]
 
 	def __str__(self):
 		return self.name
@@ -67,6 +71,12 @@ class Activity(models.Model):
 	created_at = models.DateTimeField(auto_now_add=True)
 	updated_at = models.DateTimeField(auto_now=True)
 
+	class Meta:
+		indexes = [
+			models.Index(fields=["user", "due_date"]),
+			models.Index(fields=["user", "status"]),
+		]
+
 	def __str__(self):
 		return self.title
 
@@ -80,6 +90,12 @@ class Subtask(models.Model):
 	ordering = models.PositiveIntegerField()
 	created_at = models.DateTimeField(auto_now_add=True)
 	updated_at = models.DateTimeField(auto_now=True)
+
+	class Meta:
+		indexes = [
+			models.Index(fields=["target_date", "status"]),
+			models.Index(fields=["activity_id", "status"]),
+		]
 
 	def __str__(self):
 		return self.name
@@ -107,6 +123,11 @@ class Conflict(models.Model):
 	max_allowed_hours = models.PositiveIntegerField()
 	status = models.CharField(max_length=50)
 	detected_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		indexes = [
+			models.Index(fields=["user", "affected_date", "status"]),
+		]
 
 	def __str__(self):
 		return f"Conflict {self.id} ({self.type})"

@@ -178,7 +178,10 @@ export default function ProgressView({ activities }: ProgressViewProps) {
 
 				<h3 style={{ fontSize: "16px", fontWeight: 600, margin: "0 0 1rem 0" }}>Mis actividades</h3>
 
-				<div id="tour-progress-list" style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+				<div
+					id="tour-progress-list"
+					style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}
+				>
 					{activities.length === 0 && (
 						<p style={{ color: subClr, fontSize: "14px", textAlign: "center" }}>
 							No hay actividades registradas.

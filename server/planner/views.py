@@ -228,11 +228,15 @@ class ActivityViewSet(viewsets.ModelViewSet):
 	permission_classes = [IsAuthenticated]
 
 	def get_queryset(self):
-		return Activity.objects.filter(user=self.request.user).prefetch_related(
-			"subtasks"
-		).annotate(
-			_total_subtasks=Count("subtasks", distinct=True),
-			_completed_subtasks=Count("subtasks", filter=Q(subtasks__status="completed"), distinct=True),
+		return (
+			Activity.objects.filter(user=self.request.user)
+			.prefetch_related("subtasks")
+			.annotate(
+				_total_subtasks=Count("subtasks", distinct=True),
+				_completed_subtasks=Count(
+					"subtasks", filter=Q(subtasks__status="completed"), distinct=True
+				),
+			)
 		)
 
 	def perform_create(self, serializer):

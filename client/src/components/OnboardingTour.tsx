@@ -25,7 +25,10 @@ export default function OnboardingTour() {
 						content: (
 							<div>
 								<h3>¡Bienvenido a Luma! ✨</h3>
-								<p>Vamos a dar un rápido recorrido para que conozcas las herramientas principales y puedas organizar tu tiempo al máximo.</p>
+								<p>
+									Vamos a dar un rápido recorrido para que conozcas las herramientas principales y
+									puedas organizar tu tiempo al máximo.
+								</p>
 							</div>
 						),
 						placement: "center",
@@ -38,27 +41,32 @@ export default function OnboardingTour() {
 					},
 					{
 						target: '[data-testid="dashboard-nav-org"]',
-						content: "En la sección de Organización podrás gestionar tus materias, crear nuevas actividades y dividirlas en subtareas.",
+						content:
+							"En la sección de Organización podrás gestionar tus materias, crear nuevas actividades y dividirlas en subtareas.",
 						placement: "right",
 					},
 					{
 						target: '[data-testid="dashboard-nav-progress"]',
-						content: "En Mi progreso verás estadísticas generales y el porcentaje de avance de todas tus tareas.",
+						content:
+							"En Mi progreso verás estadísticas generales y el porcentaje de avance de todas tus tareas.",
 						placement: "right",
 					},
 					{
 						target: "#tour-capacity",
-						content: "Aquí puedes ver tu capacidad diaria. Define cuántas horas quieres estudiar por día y Luma te ayudará a no sobrepasarlo.",
+						content:
+							"Aquí puedes ver tu capacidad diaria. Define cuántas horas quieres estudiar por día y Luma te ayudará a no sobrepasarlo.",
 						placement: "right",
 					},
 					{
 						target: "#tour-conflicts",
-						content: "Si programas más horas de tu límite, te avisaremos aquí. Haz clic para resolver los conflictos y balancear tu carga.",
+						content:
+							"Si programas más horas de tu límite, te avisaremos aquí. Haz clic para resolver los conflictos y balancear tu carga.",
 						placement: "right",
 					},
 					{
 						target: "#tour-theme",
-						content: "Puedes cambiar entre modo claro y oscuro cuando lo desees para mayor comodidad.",
+						content:
+							"Puedes cambiar entre modo claro y oscuro cuando lo desees para mayor comodidad.",
 						placement: "right",
 					},
 					{
@@ -72,7 +80,8 @@ export default function OnboardingTour() {
 				currentSteps = [
 					{
 						target: "#tour-org-add-subject",
-						content: "Empieza creando materias para agrupar tus actividades. Esto mantendrá todo organizado.",
+						content:
+							"Empieza creando materias para agrupar tus actividades. Esto mantendrá todo organizado.",
 						placement: "bottom",
 						skipBeacon: true,
 					},
@@ -83,7 +92,8 @@ export default function OnboardingTour() {
 					},
 					{
 						target: "#tour-org-filters",
-						content: "Cuando tengas muchas actividades y materias, usa estos filtros para ordenarlas fácilmente.",
+						content:
+							"Cuando tengas muchas actividades y materias, usa estos filtros para ordenarlas fácilmente.",
 						placement: "bottom",
 					},
 				];
@@ -92,13 +102,15 @@ export default function OnboardingTour() {
 				currentSteps = [
 					{
 						target: "#tour-progress-stats",
-						content: "Aquí puedes ver el porcentaje global de todas las subtareas que has completado.",
+						content:
+							"Aquí puedes ver el porcentaje global de todas las subtareas que has completado.",
 						placement: "bottom",
 						skipBeacon: true,
 					},
 					{
 						target: "#tour-progress-list",
-						content: "Y en esta lista verás el progreso específico de cada actividad, para saber qué tan cerca estás de terminar.",
+						content:
+							"Y en esta lista verás el progreso específico de cada actividad, para saber qué tan cerca estás de terminar.",
 						placement: "top",
 					},
 				];

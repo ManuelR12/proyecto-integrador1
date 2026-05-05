@@ -9,6 +9,12 @@ export interface User {
 	name: string;
 	max_daily_hours: number;
 	date_joined: string;
+	onboarding?: {
+		has_seen_tour: boolean;
+		has_seen_org_tour: boolean;
+		has_seen_progress_tour: boolean;
+		has_seen_conflict_tour: boolean;
+	};
 }
 
 export interface Activity {
@@ -94,7 +100,9 @@ export async function fetchMe(): Promise<User> {
 	return data;
 }
 
-export async function updateMe(payload: Partial<Pick<User, "max_daily_hours">>): Promise<User> {
+export async function updateMe(
+	payload: Partial<Pick<User, "max_daily_hours">> & { onboarding?: Partial<User["onboarding"]> },
+): Promise<User> {
 	const { data } = await client.patch<User>("/me/", payload);
 	return data;
 }

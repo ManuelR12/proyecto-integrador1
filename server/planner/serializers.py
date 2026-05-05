@@ -2,14 +2,30 @@ from datetime import date
 
 from rest_framework import serializers
 
-from .models import Activity, Conflict, Subject, Subtask, User
+from .models import Activity, Conflict, Subject, Subtask, User, UserOnboarding
 
+
+class UserOnboardingSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = UserOnboarding
+		fields = [
+			"has_seen_tour",
+			"has_seen_org_tour",
+			"has_seen_progress_tour",
+			"has_seen_conflict_tour",
+		]
 
 class UserSerializer(serializers.ModelSerializer):
+	onboarding = serializers.SerializerMethodField()
+
 	class Meta:
 		model = User
 		# include readable name and the user's max daily hours
-		fields = ["id", "username", "email", "name", "max_daily_hours", "date_joined"]
+		fields = ["id", "username", "email", "name", "max_daily_hours", "date_joined", "onboarding"]
+
+	def get_onboarding(self, obj):
+		onboarding, _ = UserOnboarding.objects.get_or_create(user=obj)
+		return UserOnboardingSerializer(onboarding).data
 
 
 class SubtaskSerializer(serializers.ModelSerializer):
@@ -286,9 +302,23 @@ class ConflictSerializer(serializers.ModelSerializer):
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
+	onboarding = UserOnboardingSerializer(required=False)
+
 	class Meta:
 		model = User
-		fields = ["max_daily_hours"]
+		fields = ["max_daily_hours", "onboarding"]
+
+	def update(self, instance, validated_data):
+		onboarding_data = validated_data.pop("onboarding", None)
+		instance = super().update(instance, validated_data)
+
+		if onboarding_data is not None:
+			onboarding, _ = UserOnboarding.objects.get_or_create(user=instance)
+			for attr, value in onboarding_data.items():
+				setattr(onboarding, attr, value)
+			onboarding.save()
+
+		return instance
 
 	def validate_max_daily_hours(self, value: int) -> int:
 		if value < 1:

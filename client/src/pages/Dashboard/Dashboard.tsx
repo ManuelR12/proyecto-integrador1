@@ -300,6 +300,19 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 		[refreshConflicts],
 	);
 
+	const handleTourComplete = useCallback(
+		async (key: keyof NonNullable<User["onboarding"]>) => {
+			try {
+				const updatedUser = await updateMe({ onboarding: { [key]: true } });
+				setUser(updatedUser);
+			} catch (err) {
+				// Non-critical: localStorage already persists the flag locally
+				console.warn("No se pudo marcar el tour como completado en el servidor:", err);
+			}
+		},
+		[],
+	);
+
 	const conflictModalItems = useMemo<ConflictModalItem[]>(() => {
 		const subtaskPool = activities.flatMap((activity) =>
 			(activity.subtasks ?? [])
@@ -831,7 +844,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
 	return (
 		<div className="dashboard" data-testid="dashboard-container">
-			<OnboardingTour />
+			<OnboardingTour user={user} onTourComplete={handleTourComplete} />
 			{/* Confirm delete modal */}
 			{confirmDelete &&
 				createPortal(
@@ -1057,6 +1070,8 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 					conflicts={conflictModalItems}
 					dateLoadMap={dateLoadMap}
 					maxDailyHours={user?.max_daily_hours ?? 0}
+					hasSeenConflictTour={user?.onboarding?.has_seen_conflict_tour ?? true}
+					onConflictTourComplete={() => void handleTourComplete("has_seen_conflict_tour")}
 					onClose={() => setConflictsOpen(false)}
 					onChangeDate={({ subtask, nextDate }) => handleConflictDateResolve({ subtask, nextDate })}
 					onReduceHours={({ subtask, nextHours }) =>
@@ -1315,13 +1330,13 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 												payload.total_estimated_hours ??
 												(payload.subtasks
 													? payload.subtasks.reduce(
-															(acc, s) =>
-																acc +
-																(typeof s.estimated_hours === "number"
-																	? s.estimated_hours
-																	: Number(s.estimated_hours || 0)),
-															0,
-														)
+														(acc, s) =>
+															acc +
+															(typeof s.estimated_hours === "number"
+																? s.estimated_hours
+																: Number(s.estimated_hours || 0)),
+														0,
+													)
 													: 0),
 											subtasks: payload.subtasks?.map((s) => ({
 												name: s.title,
@@ -1337,13 +1352,13 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 											payload.total_estimated_hours ??
 											(payload.subtasks
 												? payload.subtasks.reduce(
-														(acc, s) =>
-															acc +
-															(typeof s.estimated_hours === "number"
-																? s.estimated_hours
-																: Number(s.estimated_hours || 0)),
-														0,
-													)
+													(acc, s) =>
+														acc +
+														(typeof s.estimated_hours === "number"
+															? s.estimated_hours
+															: Number(s.estimated_hours || 0)),
+													0,
+												)
 												: 0);
 
 										const created: Activity = {

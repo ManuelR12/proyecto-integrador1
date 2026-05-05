@@ -21,7 +21,7 @@
 .cf-modal {
 	position: relative;
 	width: min(980px, 100%);
-	max-height: min(88vh, 860px);
+	height: min(88vh, 860px);
 	display: flex;
 	flex-direction: column;
 	border-radius: 24px;
@@ -169,19 +169,41 @@
 }
 
 .cf-content {
-	overflow: auto;
-	min-height: 0;
-	padding: 18px 22px;
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1; /* Allows it to grow and fill space */
+    padding: 24px; /* Increased padding for better breathing room */
+    display: flex;
+    flex-direction: column;
+    gap: 16px; /* Increased gap so items don't feel "stuck" together */
+}
+
+
+.cf-content::-webkit-scrollbar {
+	width: 6px;
+}
+
+.cf-content::-webkit-scrollbar-track {
+	background: rgba(255, 255, 255, 0.04);
+	border-radius: 999px;
+}
+
+.cf-content::-webkit-scrollbar-thumb {
+	background: rgba(245, 158, 11, 0.38);
+	border-radius: 999px;
+}
+
+.cf-content::-webkit-scrollbar-thumb:hover {
+	background: rgba(245, 158, 11, 0.56);
 }
 
 .cf-item {
-	border: 1px solid rgba(255, 255, 255, 0.08);
-	border-radius: 16px;
-	background: rgba(255, 255, 255, 0.02);
-	overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    overflow: hidden;
+    flex-shrink: 0; /* CRITICAL: Prevents the item from shrinking to fit the container */
+    width: 100%;
 }
 
 .cf-item.is-expanded {
@@ -190,11 +212,55 @@
 }
 
 .cf-item-summary {
-	display: grid;
-	grid-template-columns: minmax(0, 1.6fr) minmax(110px, 0.7fr) minmax(180px, 0.9fr) auto;
-	gap: 14px;
+	display: flex;
 	align-items: center;
+	gap: 14px;
 	padding: 16px 18px;
+	min-height: 72px;
+}
+
+.cf-title-wrap {
+	flex: 1 1 0;
+	min-width: 0;
+}
+
+.cf-item-summary .cf-title-wrap {
+	grid-column: unset;
+	grid-row: unset;
+}
+
+/* Meta blocks are inline next to title inside summary */
+.cf-item-summary .cf-meta-block {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 100px;
+	flex-shrink: 0;
+}
+
+/* Inline meta row that lives inside cf-title-wrap (fallback chip row) */
+.cf-title-meta-row {
+	display: none;
+}
+
+.cf-title-meta-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: rgba(255, 255, 255, 0.55);
+	white-space: nowrap;
+}
+
+.cf-title-meta-chip .cf-hours-value {
+	font-size: 0.75rem;
+}
+
+.cf-item-summary .cf-toggle {
+	grid-column: unset;
+	grid-row: unset;
+	flex-shrink: 0;
 }
 
 .cf-title-wrap {
@@ -203,21 +269,21 @@
 
 .cf-title-wrap h3 {
 	margin: 0;
-	font-size: 1rem;
+	font-size: 0.95rem;
 	font-weight: 800;
 	color: #f8fafc;
+	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 
 .cf-title-wrap p {
-	margin: 5px 0 0;
+	margin: 4px 0 0;
 	font-size: 0.81rem;
 	color: rgba(255, 255, 255, 0.5);
+	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	white-space: nowrap;
 }
 
 .cf-meta-block {
@@ -253,10 +319,12 @@
 	background: rgba(255, 255, 255, 0.05);
 	color: rgba(255, 255, 255, 0.84);
 	height: 40px;
+	min-width: 100px;
 	padding: 0 14px;
 	border-radius: 10px;
 	font-size: 0.82rem;
 	font-weight: 800;
+	flex-shrink: 0;
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;

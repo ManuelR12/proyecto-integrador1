@@ -2,8 +2,22 @@ import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Joyride, STATUS, type Step, type EventData } from "react-joyride";
 import { useTheme } from "../hooks/useTheme";
+import type { User } from "@/api/dashboard";
 
-export default function OnboardingTour() {
+type OnboardingKey = keyof NonNullable<User["onboarding"]>;
+
+const STORAGE_KEY_TO_ONBOARDING: Record<string, OnboardingKey> = {
+	luma_has_seen_tour: "has_seen_tour",
+	luma_has_seen_org_tour: "has_seen_org_tour",
+	luma_has_seen_progress_tour: "has_seen_progress_tour",
+};
+
+interface OnboardingTourProps {
+	user?: User | null;
+	onTourComplete?: (key: OnboardingKey) => void;
+}
+
+export default function OnboardingTour({ user, onTourComplete }: OnboardingTourProps) {
 	const { isDark } = useTheme();
 	const location = useLocation();
 	const [run, setRun] = useState(false);
@@ -117,8 +131,10 @@ export default function OnboardingTour() {
 			}
 
 			if (storageKey && currentSteps.length > 0) {
-				const hasSeen = localStorage.getItem(storageKey);
-				if (!hasSeen) {
+				const onboardingKey = STORAGE_KEY_TO_ONBOARDING[storageKey];
+				const seenViaApi = onboardingKey ? user?.onboarding?.[onboardingKey] === true : false;
+				const seenViaStorage = !!localStorage.getItem(storageKey);
+				if (!seenViaApi && !seenViaStorage) {
 					setSteps(currentSteps);
 					setCurrentStorageKey(storageKey);
 					setRun(true);
@@ -131,7 +147,7 @@ export default function OnboardingTour() {
 		}, 500); // 500ms delay to let animations and DOM settle
 
 		return () => clearTimeout(timeoutId);
-	}, [location.pathname]);
+	}, [location.pathname, user]);
 
 	const handleJoyrideCallback = (data: EventData) => {
 		const { status } = data;
@@ -141,6 +157,10 @@ export default function OnboardingTour() {
 			setRun(false);
 			if (currentStorageKey) {
 				localStorage.setItem(currentStorageKey, "true");
+				const onboardingKey = STORAGE_KEY_TO_ONBOARDING[currentStorageKey];
+				if (onboardingKey) {
+					onTourComplete?.(onboardingKey);
+				}
 			}
 		}
 	};

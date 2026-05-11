@@ -1,6 +1,6 @@
 // Shared types and helper utilities used across Dashboard views
 
-// Local type matching CreateActivityModal's payload
+// Local type matching CreateActivityView's payload
 export type NewActivityPayloadFromModal = {
 	subject: string;
 	title: string;

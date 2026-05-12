@@ -20,7 +20,7 @@ function AuthLayout() {
 }
 
 // ─────────────────────────────────────────────
-// Layout: rutas protegidas (sin sesión → /login)
+// Layout: rutas protegidas (sin sesión → /auth)
 // ─────────────────────────────────────────────
 function DashboardLayout() {
 	const navigate = useNavigate();
@@ -28,14 +28,14 @@ function DashboardLayout() {
 
 	if (!isTokenValid(token)) {
 		clearAuthStorage();
-		return <Navigate to="/login" replace />;
+		return <Navigate to="/auth" replace />;
 	}
 
 	const handleLogout = () => {
 		clearAuthStorage();
 		delete client.defaults.headers.common["Authorization"];
 		toast.success("Sesión cerrada correctamente");
-		navigate("/login");
+		navigate("/auth");
 	};
 
 	// El Dashboard ya usa useLocation() internamente para saber qué vista mostrar.
@@ -77,7 +77,7 @@ function AppRoutes() {
 
 				{/* ── Rutas de autenticación (redirigen si ya hay sesión) ── */}
 				<Route element={<AuthLayout />}>
-					<Route path="/login" element={<LoginPage />} />
+					<Route path="/auth" element={<LoginPage />} />
 					<Route path="/registro" element={<Register />} />
 				</Route>
 
@@ -86,6 +86,9 @@ function AppRoutes() {
 					<Route path="/hoy" element={null} />
 					<Route path="/organizacion" element={null} />
 					<Route path="/progreso" element={null} />
+					<Route path="/crear" element={null} />
+					<Route path="/actividad/:id" element={null} />
+					<Route path="/actividad/:id/edit" element={null} />
 				</Route>
 
 				{/* ── Fallback ── */}

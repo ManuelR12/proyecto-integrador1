@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import {
 	CalendarClock,
 	Plus,
@@ -15,11 +16,11 @@ import {
 	ClipboardList,
 	Pencil,
 } from "lucide-react";
-import { updateActivity, fetchSubtasks, type Activity, type Subtask } from "@/api/dashboard";
+import { fetchSubtasks, type Activity, type Subtask } from "@/api/dashboard";
 import { toast } from "sonner";
 import "@/pages/Dashboard/Dashboard.css";
 import { formatDate, daysUntil } from "@/pages/Dashboard/utils/dashboardUtils";
-import { EditActivityForm, SubjectFormModal } from "@/components/modals/Organizations/OrgModals";
+import { SubjectFormModal } from "@/components/modals/Organizations/OrgModals";
 import SubtaskManagerModal from "@/components/modals/Subtasks/SubtaskManagerModal";
 import Pagination from "@/components/ui/Pagination";
 import { useTheme } from "@/hooks/useTheme";
@@ -40,7 +41,6 @@ interface OrgViewProps {
 	dateLoadMap?: Record<string, number>;
 	conflictDates?: string[];
 	maxDailyHours?: number;
-	onActivitySaved?: (updated: Activity, previous: Activity) => void;
 	onOpenCreate: (subject?: string) => void;
 	activeFilters: string[];
 	searchQuery: string;
@@ -70,13 +70,13 @@ export default function OrganizationView({
 	dateLoadMap = {},
 	conflictDates = [],
 	maxDailyHours = 0,
-	onActivitySaved,
 	onOpenCreate,
 	activeFilters,
 	searchQuery,
 	expandSubject,
 }: OrgViewProps) {
 	const { isDark } = useTheme();
+	const navigate = useNavigate();
 	const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
 
 	const [orgPage, setOrgPage] = useState(1);
@@ -95,7 +95,6 @@ export default function OrganizationView({
 	const [orgConfirmDelete, setOrgConfirmDelete] = useState<string | null>(null);
 	const [subjectDeleteLoading, setSubjectDeleteLoading] = useState(false);
 	const [subjectRenameLoading, setSubjectRenameLoading] = useState(false);
-	const [orgEditActivity, setOrgEditActivity] = useState<Activity | null>(null);
 	const [subtaskStateByActivity, setSubtaskStateByActivity] = useState<
 		Record<number, { loading: boolean; items: Subtask[] }>
 	>({});
@@ -595,6 +594,7 @@ export default function OrganizationView({
 																		{statusLabels[act.status] ?? act.status}
 																	</span>
 																	<span
+																		onClick={() => navigate(`/actividad/${act.id}`)}
 																		style={{
 																			fontSize: "14px",
 																			fontWeight: 700,
@@ -604,6 +604,16 @@ export default function OrganizationView({
 																				act.status === "completed" ? "line-through" : "none",
 																			flex: 1,
 																			minWidth: 0,
+																			cursor: "pointer",
+																			transition: "color 0.15s",
+																		}}
+																		onMouseOver={(e) => {
+																			if (act.status !== "completed")
+																				e.currentTarget.style.color = "#c084fc";
+																		}}
+																		onMouseOut={(e) => {
+																			if (act.status !== "completed")
+																				e.currentTarget.style.color = ov.actTitle;
 																		}}
 																	>
 																		{act.title}
@@ -810,7 +820,7 @@ export default function OrganizationView({
 																		display: "flex",
 																		transition: "color 0.15s",
 																	}}
-																	onClick={() => setOrgEditActivity(act)}
+																	onClick={() => navigate(`/actividad/${act.id}/edit`)}
 																	data-testid={`org-activity-edit-btn-${act.id}`}
 																	onMouseOver={(e) => (e.currentTarget.style.color = "#c084fc")}
 																	onMouseOut={(e) => (e.currentTarget.style.color = "#334155")}
@@ -1373,44 +1383,6 @@ export default function OrganizationView({
 								</button>
 							</div>
 						</div>
-					</div>,
-					document.body,
-				)}
-
-			{/* Edit activity modal */}
-			{orgEditActivity &&
-				createPortal(
-					<div
-						data-testid="org-edit-activity-layer"
-						style={{
-							position: "fixed",
-							inset: 0,
-							background: "rgba(4,3,12,0.72)",
-							backdropFilter: "blur(14px) saturate(150%)",
-							WebkitBackdropFilter: "blur(14px) saturate(150%)",
-							zIndex: 9998,
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "center",
-							animation: "fadeInBackdrop 0.18s ease",
-						}}
-						onClick={() => setOrgEditActivity(null)}
-					>
-						<EditActivityForm
-							activity={orgEditActivity}
-							subjects={subjects}
-							dateLoadMap={dateLoadMap}
-							conflictDates={conflictDates}
-							maxDailyHours={maxDailyHours}
-							onClose={() => setOrgEditActivity(null)}
-							onSave={async (id, payload) => {
-								const updated = await updateActivity(id, payload);
-								onActivityUpdate(updated);
-								onActivitySaved?.(updated, orgEditActivity);
-								setOrgEditActivity(null);
-								toast.success("Actividad actualizada");
-							}}
-						/>
 					</div>,
 					document.body,
 				)}

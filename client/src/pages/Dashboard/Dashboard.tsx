@@ -26,6 +26,7 @@ import {
 	Trash2,
 	Folder,
 	BookOpen,
+	ClipboardList,
 } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle/ThemeToggle";
 import { useTheme } from "@/hooks/useTheme";
@@ -39,6 +40,7 @@ import {
 	fetchConflicts,
 	createActivity,
 	deleteActivity,
+	updateActivity,
 	updateSubtask,
 	fetchSubjects,
 	createSubject,
@@ -50,14 +52,16 @@ import {
 	type Subtask,
 	type Subject,
 } from "@/api/dashboard";
+import type { NewActivityPayloadFromModal } from "@/pages/Dashboard/utils/dashboardUtils";
 import { toast } from "sonner";
 import "@/pages/Dashboard/Dashboard.css";
-import CreateActivityModal from "@/components/modals/Activities/CreateActivityModal";
+import CreateActivityView from "@/components/views/CreateActivityView";
+import EditActivityView from "@/components/views/EditActivityView";
+import ActivityDetailView from "@/components/views/ActivityDetailView";
 import {
 	checkDailyConflicts,
 	type KanbanGroup,
 	type KanbanState,
-	type NewActivityPayloadFromModal,
 } from "@/pages/Dashboard/utils/dashboardUtils";
 import OrganizationView from "@/components/views/OrganizationView";
 import TodayKanban from "@/components/views/TodayView";
@@ -92,7 +96,17 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 	const { pathname } = useLocation();
 	const navigate = useNavigate();
 	const activeNav =
-		pathname === "/organizacion" ? "org" : pathname === "/progreso" ? "progress" : "today";
+		pathname === "/organizacion"
+			? "org"
+			: pathname === "/progreso"
+				? "progress"
+				: pathname === "/crear"
+					? "create"
+					: pathname.match(/^\/actividad\/\d+\/edit$/)
+						? "activity_edit"
+						: pathname.match(/^\/actividad\/\d+$/)
+							? "activity_detail"
+							: "today";
 	const [searchOpen, setSearchOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showWave, setShowWave] = useState(false);
@@ -111,8 +125,6 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 		}
 	});
 	const [todayData, setTodayData] = useState<KanbanState | null>(null);
-	const [createOpen, setCreateOpen] = useState(false);
-	const [prefilledSubject, setPrefilledSubject] = useState("");
 	const [pendingExpandSubject, setPendingExpandSubject] = useState<{ subject: string } | null>(
 		null,
 	);
@@ -264,6 +276,24 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 					title: "Mi progreso",
 					TitleIcon: BarChart3,
 					tipText: "Analiza tu desempeño, el tiempo invertido y tus estadísticas generales.",
+				};
+			case "create":
+				return {
+					title: "Nueva actividad",
+					TitleIcon: ClipboardList,
+					tipText: "Crea una nueva actividad con subtareas y planifica tu día.",
+				};
+			case "activity_detail":
+				return {
+					title: "Detalles de actividad",
+					TitleIcon: ClipboardList,
+					tipText: "Detalles completos y progreso de tus subtareas asociadas.",
+				};
+			case "activity_edit":
+				return {
+					title: "Editar actividad",
+					TitleIcon: ClipboardList,
+					tipText: "Edita la información general de la actividad y guárdala.",
 				};
 			default:
 				return {
@@ -1271,10 +1301,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 										</button>
 										<button
 											className="btn-add"
-											onClick={() => {
-												setPrefilledSubject("");
-												setCreateOpen(true);
-											}}
+											onClick={() => navigate("/crear")}
 											data-testid="dashboard-create-activity-btn"
 										>
 											<Plus size={16} />
@@ -1284,114 +1311,19 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 								)}
 							</div>
 
-							{/* Create activity modal (rendered at top level to avoid z-index issues) */}
-							<CreateActivityModal
-								open={createOpen}
-								onClose={() => setCreateOpen(false)}
-								initialSubject={prefilledSubject}
-								knownSubjects={knownSubjects}
-								dateLoadMap={dateLoadMap}
-								conflictDates={conflictDates}
-								maxDailyHours={capacityTotal}
-								onCreate={async (payload: NewActivityPayloadFromModal) => {
-									try {
-										const apiPayload = {
-											course_name: payload.subject,
-											title: payload.title,
-											description: payload.description,
-											due_date: payload.due_date,
-											status: "pending" as const,
-											total_estimated_hours:
-												payload.total_estimated_hours ??
-												(payload.subtasks
-													? payload.subtasks.reduce(
-															(acc, s) =>
-																acc +
-																(typeof s.estimated_hours === "number"
-																	? s.estimated_hours
-																	: Number(s.estimated_hours || 0)),
-															0,
-														)
-													: 0),
-											subtasks: payload.subtasks?.map((s) => ({
-												name: s.title,
-												target_date: s.target_date,
-												estimated_hours: Number(s.estimated_hours || 0),
-											})),
-										};
-
-										console.log("createActivity payload:", apiPayload);
-										const resp = await createActivity(apiPayload);
-
-										const totalHoursFromPayload =
-											payload.total_estimated_hours ??
-											(payload.subtasks
-												? payload.subtasks.reduce(
-														(acc, s) =>
-															acc +
-															(typeof s.estimated_hours === "number"
-																? s.estimated_hours
-																: Number(s.estimated_hours || 0)),
-														0,
-													)
-												: 0);
-
-										const created: Activity = {
-											...resp,
-											course_name: resp.course_name ?? apiPayload.course_name ?? payload.subject,
-											subtask_count: payload.subtasks?.length ?? 0,
-											total_estimated_hours: resp.total_estimated_hours ?? totalHoursFromPayload,
-										};
-										setActivities((prev) => [created, ...prev]);
-										if (activeNav === "org") {
-											const subjectName =
-												resp.course_name ?? apiPayload.course_name ?? payload.subject;
-											if (subjectName) setPendingExpandSubject({ subject: subjectName });
-										}
-										setCreateOpen(false);
-
-										const newTodayHours =
-											payload.subtasks
-												?.filter((s) => s.target_date === todayDateKey)
-												.reduce((sum, s) => sum + Number(s.estimated_hours || 0), 0) ?? 0;
-										const projectedTodayHours = (dateLoadMap[todayDateKey] ?? 0) + newTodayHours;
-										const hasProjectedTodayConflict =
-											payload.due_date === todayDateKey &&
-											(!!todayPendingConflict ||
-												(capacityTotal > 0 && projectedTodayHours > capacityTotal));
-
-										if (hasProjectedTodayConflict) {
-											warnTodayConflictAfterScheduling("crear");
-										}
-
-										const createdConflict = checkDailyConflicts(
-											payload.subtasks?.map((s) => ({
-												target_date: s.target_date,
-												estimated_hours: Number(s.estimated_hours || 0),
-											})) ?? [],
-											user?.max_daily_hours ?? 0,
-										);
-										if (createdConflict) {
-											handleConflictDetected({
-												activityTitle: payload.title,
-												date: createdConflict.date,
-												totalHours: createdConflict.totalHours,
-												maxHours: user?.max_daily_hours ?? 0,
-											});
-										}
-										void refreshConflicts();
-										toast.success("Actividad creada");
-									} catch (err) {
-										console.error("Failed to create activity:", err);
-										toast.error("Error creando la actividad. Intenta de nuevo.");
-									}
-								}}
-							/>
 							<div className="header-right">
 								<div
 									className="filter-wrapper"
 									ref={filterRef}
-									style={{ display: activeNav === "today" ? "none" : undefined }}
+									style={{
+										display:
+											activeNav === "today" ||
+											activeNav === "create" ||
+											activeNav === "activity_edit" ||
+											activeNav === "activity_detail"
+												? "none"
+												: undefined,
+									}}
 									data-testid="dashboard-filter-wrapper"
 								>
 									<button
@@ -1513,7 +1445,17 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 									</div>
 								</div>
 
-								<div className={`search-wrapper ${searchOpen ? "open" : ""}`}>
+								<div
+									className={`search-wrapper ${searchOpen ? "open" : ""}`}
+									style={{
+										display:
+											activeNav === "create" ||
+											activeNav === "activity_edit" ||
+											activeNav === "activity_detail"
+												? "none"
+												: undefined,
+									}}
+								>
 									<button
 										className="btn-search"
 										onClick={() => setSearchOpen(!searchOpen)}
@@ -1577,33 +1519,168 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 								dateLoadMap={dateLoadMap}
 								conflictDates={conflictDates}
 								maxDailyHours={capacityTotal}
-								onActivitySaved={(updated, previous) => {
-									void previous;
-									const dueInToday = updated.due_date === todayDateKey;
-									if (!dueInToday) return;
-
-									const currentTodayHours = dateLoadMap[todayDateKey] ?? 0;
-									const hasTodayConflict =
-										!!todayPendingConflict ||
-										(capacityTotal > 0 && currentTodayHours > capacityTotal);
-
-									if (hasTodayConflict) {
-										warnTodayConflictAfterScheduling("editar");
-									}
-								}}
 								activeFilters={activeFilters}
 								searchQuery={searchQuery}
 								expandSubject={pendingExpandSubject}
 								onOpenCreate={(subject) => {
-									setPrefilledSubject(subject ?? "");
-									setCreateOpen(true);
+									if (subject) {
+										navigate(`/crear?materia=${encodeURIComponent(subject)}`);
+									} else {
+										navigate("/crear");
+									}
 								}}
 							/>
 						)}
 
 						{/* ===== PROGRESS VIEW ===== */}
 						{activeNav === "progress" && (
-							<ProgressView activities={activities} onOpenCreate={() => setCreateOpen(true)} />
+							<ProgressView activities={activities} onOpenCreate={() => navigate("/crear")} />
+						)}
+
+						{/* ===== CREATE VIEW ===== */}
+						{activeNav === "create" && (
+							<CreateActivityView
+								knownSubjects={knownSubjects}
+								dateLoadMap={dateLoadMap}
+								conflictDates={conflictDates}
+								maxDailyHours={capacityTotal}
+								onCreate={async (payload: NewActivityPayloadFromModal) => {
+									try {
+										const apiPayload = {
+											course_name: payload.subject,
+											title: payload.title,
+											description: payload.description,
+											due_date: payload.due_date,
+											status: "pending" as const,
+											total_estimated_hours:
+												payload.total_estimated_hours ??
+												(payload.subtasks
+													? payload.subtasks.reduce(
+															(acc, s) =>
+																acc +
+																(typeof s.estimated_hours === "number"
+																	? s.estimated_hours
+																	: Number(s.estimated_hours || 0)),
+															0,
+														)
+													: 0),
+											subtasks: payload.subtasks?.map((s) => ({
+												name: s.title,
+												target_date: s.target_date,
+												estimated_hours: Number(s.estimated_hours || 0),
+											})),
+										};
+
+										const resp = await createActivity(apiPayload);
+
+										const totalHoursFromPayload =
+											payload.total_estimated_hours ??
+											(payload.subtasks
+												? payload.subtasks.reduce(
+														(acc, s) =>
+															acc +
+															(typeof s.estimated_hours === "number"
+																? s.estimated_hours
+																: Number(s.estimated_hours || 0)),
+														0,
+													)
+												: 0);
+
+										const created: Activity = {
+											...resp,
+											course_name: resp.course_name ?? apiPayload.course_name ?? payload.subject,
+											subtask_count: payload.subtasks?.length ?? 0,
+											total_estimated_hours: resp.total_estimated_hours ?? totalHoursFromPayload,
+										};
+										setActivities((prev) => [created, ...prev]);
+
+										const subjectName =
+											resp.course_name ?? apiPayload.course_name ?? payload.subject;
+										if (subjectName) setPendingExpandSubject({ subject: subjectName });
+
+										const newTodayHours =
+											payload.subtasks
+												?.filter((s) => s.target_date === todayDateKey)
+												.reduce((sum, s) => sum + Number(s.estimated_hours || 0), 0) ?? 0;
+										const projectedTodayHours = (dateLoadMap[todayDateKey] ?? 0) + newTodayHours;
+										const hasProjectedTodayConflict =
+											payload.due_date === todayDateKey &&
+											(!!todayPendingConflict ||
+												(capacityTotal > 0 && projectedTodayHours > capacityTotal));
+
+										if (hasProjectedTodayConflict) {
+											warnTodayConflictAfterScheduling("crear");
+										}
+
+										const createdConflict = checkDailyConflicts(
+											payload.subtasks?.map((s) => ({
+												target_date: s.target_date,
+												estimated_hours: Number(s.estimated_hours || 0),
+											})) ?? [],
+											user?.max_daily_hours ?? 0,
+										);
+										if (createdConflict) {
+											handleConflictDetected({
+												activityTitle: payload.title,
+												date: createdConflict.date,
+												totalHours: createdConflict.totalHours,
+												maxHours: user?.max_daily_hours ?? 0,
+											});
+										}
+										void refreshConflicts();
+										toast.success("Actividad creada");
+										navigate("/organizacion");
+									} catch (err) {
+										console.error("Failed to create activity:", err);
+										toast.error("Error creando la actividad. Intenta de nuevo.");
+									}
+								}}
+							/>
+						)}
+
+						{/* ===== ACTIVITY DETAIL VIEW ===== */}
+						{activeNav === "activity_detail" && <ActivityDetailView activities={activities} />}
+
+						{/* ===== EDIT ACTIVITY VIEW ===== */}
+						{activeNav === "activity_edit" && (
+							<EditActivityView
+								activities={activities}
+								subjects={knownSubjects}
+								dateLoadMap={dateLoadMap}
+								conflictDates={conflictDates}
+								maxDailyHours={capacityTotal}
+								onSave={async (id, payload) => {
+									try {
+										const updated = await updateActivity(id, payload);
+										setActivities((prev) =>
+											prev.map((a) => (a.id === id ? { ...a, ...updated } : a)),
+										);
+
+										// Recalculate conflicts if necessary
+										if (payload.due_date) {
+											void refreshConflicts();
+										}
+
+										const dueInToday = updated.due_date === todayDateKey;
+										if (dueInToday) {
+											const currentTodayHours = dateLoadMap[todayDateKey] ?? 0;
+											const hasTodayConflict =
+												!!todayPendingConflict ||
+												(capacityTotal > 0 && currentTodayHours > capacityTotal);
+
+											if (hasTodayConflict) {
+												warnTodayConflictAfterScheduling("editar");
+											}
+										}
+
+										toast.success("Actividad actualizada");
+									} catch (err) {
+										console.error("Failed to update activity:", err);
+										toast.error("Error actualizando la actividad. Intenta de nuevo.");
+										throw err; // Propagate to let the view handle the error state
+									}
+								}}
+							/>
 						)}
 					</>
 				)}

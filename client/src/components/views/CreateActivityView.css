@@ -1,0 +1,212 @@
+/* ============================================================
+   CreateActivityView — Embedded page layout
+   Variables inherited from CreateActivityModal.css (ca-* classes)
+   ============================================================ */
+
+.cav-container {
+	--ca-purple: #7c5cff;
+	--ca-purple-light: #a78bfa;
+	--ca-green: #22c55e;
+	--ca-green-dark: #10b981;
+	--ca-red: #f87171;
+	--ca-orange: #fb923c;
+	--ca-bg-deep: #09071a;
+	--ca-bg-modal: #0f0d1f;
+	--ca-bg-card: rgba(255, 255, 255, 0.025);
+	--ca-border: rgba(255, 255, 255, 0.07);
+	--ca-text: rgba(255, 255, 255, 0.9);
+	--ca-text-muted: rgba(255, 255, 255, 0.4);
+	--ca-text-dim: rgba(255, 255, 255, 0.22);
+
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	animation: cav-enter 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+	margin-top: 1.5rem;
+	padding-bottom: 2rem;
+}
+
+@keyframes cav-enter {
+	from {
+		opacity: 0;
+		transform: translateY(18px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* ---- Card shell ---- */
+.cav-card {
+	border-radius: 20px;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+
+	background:
+		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"),
+		radial-gradient(ellipse 60% 40% at 10% 0%, rgba(124, 92, 255, 0.12) 0%, transparent 70%),
+		radial-gradient(ellipse 50% 40% at 90% 100%, rgba(34, 197, 94, 0.05) 0%, transparent 70%),
+		linear-gradient(155deg, #15122b 0%, #0f0d1f 45%, #09071a 100%);
+
+	border: 1px solid rgba(255, 255, 255, 0.07);
+	box-shadow:
+		0 0 0 1px rgba(124, 92, 255, 0.1),
+		0 20px 60px rgba(0, 0, 0, 0.35),
+		0 0 80px rgba(124, 92, 255, 0.05) inset;
+
+	min-height: 480px;
+}
+
+/* ---- Header ---- */
+.cav-header {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 26px 30px 22px;
+	gap: 16px;
+	position: relative;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cav-header::before {
+	content: "";
+	position: absolute;
+	top: -20px;
+	left: -20px;
+	right: -20px;
+	height: 160px;
+	background: radial-gradient(
+		ellipse 85% 55% at 50% 0%,
+		rgba(124, 92, 255, 0.18) 0%,
+		rgba(124, 92, 255, 0.06) 50%,
+		transparent 100%
+	);
+	pointer-events: none;
+}
+
+.cav-header-left {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	z-index: 1;
+}
+
+.cav-header-icon {
+	width: 42px;
+	height: 42px;
+	border-radius: 13px;
+	background: linear-gradient(135deg, rgba(124, 92, 255, 0.25), rgba(167, 139, 250, 0.1));
+	border: 1px solid rgba(124, 92, 255, 0.25);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--ca-purple-light);
+	flex-shrink: 0;
+	box-shadow: 0 0 20px rgba(124, 92, 255, 0.15);
+}
+
+.cav-header-text {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.cav-header-text h3 {
+	margin: 0;
+	font-size: 20px;
+	font-weight: 700;
+	letter-spacing: -0.4px;
+	color: #ede9ff;
+}
+
+.cav-header-subtitle {
+	margin: 0;
+	font-size: 12.5px;
+	color: var(--ca-text-muted);
+}
+
+.cav-back-btn {
+	z-index: 1;
+	flex-shrink: 0;
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.07);
+	color: var(--ca-text-muted);
+	padding: 8px 16px;
+	border-radius: 11px;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	font-size: 13px;
+	font-weight: 600;
+	font-family: inherit;
+	transition:
+		background 0.15s,
+		color 0.15s,
+		border-color 0.15s;
+}
+
+.cav-back-btn:hover {
+	background: rgba(255, 255, 255, 0.08);
+	border-color: rgba(255, 255, 255, 0.15);
+	color: rgba(255, 255, 255, 0.8);
+}
+
+/* ---- Light theme overrides ---- */
+[data-theme="light"] .cav-container {
+	--ca-bg-deep: #f0edfb;
+	--ca-bg-modal: #ffffff;
+	--ca-bg-card: rgba(124, 92, 255, 0.03);
+	--ca-border: rgba(124, 92, 255, 0.12);
+	--ca-text: #1e1a33;
+	--ca-text-muted: #4a4568;
+	--ca-text-dim: #9b8eb8;
+}
+
+[data-theme="light"] .cav-card {
+	background:
+		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E"),
+		radial-gradient(ellipse 60% 40% at 10% 0%, rgba(124, 92, 255, 0.07) 0%, transparent 70%),
+		radial-gradient(ellipse 50% 40% at 90% 100%, rgba(34, 197, 94, 0.03) 0%, transparent 70%),
+		linear-gradient(155deg, #f8f5ff 0%, #f0ecfb 45%, #ebe5f7 100%);
+
+	border-color: rgba(124, 92, 255, 0.14);
+	box-shadow:
+		0 0 0 1px rgba(124, 92, 255, 0.08),
+		0 20px 60px rgba(124, 92, 255, 0.12),
+		0 0 60px rgba(124, 92, 255, 0.03) inset;
+}
+
+[data-theme="light"] .cav-header {
+	border-bottom-color: rgba(124, 92, 255, 0.1);
+}
+
+[data-theme="light"] .cav-header-text h3 {
+	color: #1e1a33;
+}
+
+[data-theme="light"] .cav-back-btn {
+	background: rgba(124, 92, 255, 0.06);
+	border-color: rgba(124, 92, 255, 0.15);
+	color: #4a4568;
+}
+
+[data-theme="light"] .cav-back-btn:hover {
+	background: rgba(124, 92, 255, 0.1);
+	color: #1e1a33;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 720px) {
+	.cav-card {
+		border-radius: 14px;
+	}
+
+	.cav-header {
+		padding: 20px;
+	}
+}

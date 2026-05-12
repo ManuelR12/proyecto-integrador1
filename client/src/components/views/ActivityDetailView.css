@@ -1,0 +1,424 @@
+/* ============================================================
+   ActivityDetailView — Detail page layout aligned with Luma Palette
+   ============================================================ */
+
+.adv-container {
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+	animation: adv-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+	width: 100%;
+}
+
+@keyframes adv-enter {
+	from {
+		opacity: 0;
+		transform: translateY(14px) scale(0.995);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+.adv-card {
+	border-radius: 16px;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	background: var(--card-bg, rgba(124, 108, 235, 0.04));
+	border: 1px solid var(--card-border, rgba(124, 108, 235, 0.08));
+	min-height: 400px;
+	position: relative;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+/* Subtle glow at the top for premium feel */
+.adv-card::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 120px;
+	background: radial-gradient(
+		ellipse 60% 100% at 50% 0%,
+		rgba(124, 108, 235, 0.12) 0%,
+		transparent 100%
+	);
+	pointer-events: none;
+	z-index: 0;
+}
+
+/* ---- Header ---- */
+.adv-header {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 24px 30px;
+	gap: 16px;
+	position: relative;
+	z-index: 1;
+	border-bottom: 1px solid var(--card-border, rgba(124, 108, 235, 0.08));
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+}
+
+.adv-header-left {
+	display: flex;
+	align-items: center;
+	gap: 18px;
+}
+
+.adv-header-icon {
+	width: 52px;
+	height: 52px;
+	border-radius: 14px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	background: rgba(124, 108, 235, 0.1);
+	border: 1px solid rgba(124, 108, 235, 0.2);
+}
+
+.adv-header-text {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.adv-title {
+	margin: 0;
+	font-size: 1.45rem;
+	font-weight: 800;
+	letter-spacing: -0.02em;
+	color: var(--text-white, #fff);
+	line-height: 1.2;
+}
+
+.adv-meta {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	font-size: 0.85rem;
+	color: var(--text-secondary, #9b93b4);
+	font-weight: 500;
+}
+
+.adv-meta-tag {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	background: var(--accent-bg, rgba(124, 108, 235, 0.08));
+	padding: 4px 10px;
+	border-radius: 8px;
+	color: var(--accent-soft, #c4b5fd);
+	border: 1px solid var(--accent-border, rgba(124, 108, 235, 0.12));
+}
+
+.adv-meta-status {
+	font-weight: 600;
+	padding: 4px 10px;
+	border-radius: 8px;
+	font-size: 0.8rem;
+}
+
+/* ---- Header Actions ---- */
+.adv-header-actions {
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.adv-btn {
+	padding: 8px 16px;
+	border-radius: 10px;
+	font-size: 0.85rem;
+	font-weight: 600;
+	font-family: inherit;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.adv-btn-ghost {
+	background: var(--accent-bg, rgba(124, 108, 235, 0.08));
+	color: var(--accent-soft, #c4b5fd);
+	border: 1px solid var(--accent-border, rgba(124, 108, 235, 0.12));
+}
+.adv-btn-ghost:hover {
+	background: var(--accent-bg-hover, rgba(124, 108, 235, 0.14));
+	border-color: rgba(124, 108, 235, 0.25);
+	transform: translateY(-1px);
+}
+
+.adv-btn-outline {
+	background: transparent;
+	color: var(--text-secondary, #9b93b4);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.adv-btn-outline:hover {
+	background: rgba(255, 255, 255, 0.05);
+	color: var(--text-primary, #f0ecf8);
+}
+
+/* ---- Body ---- */
+.adv-body {
+	padding: 30px;
+	display: flex;
+	flex-direction: column;
+	gap: 32px;
+	flex: 1;
+	position: relative;
+	z-index: 1;
+}
+
+.adv-info-grid {
+	display: grid;
+	grid-template-columns: 2fr 1fr;
+	gap: 20px;
+}
+
+.adv-info-card {
+	background: rgba(255, 255, 255, 0.02);
+	border: 1px solid var(--card-border, rgba(124, 108, 235, 0.08));
+	border-radius: 14px;
+	padding: 20px 24px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	transition:
+		background 0.2s,
+		border-color 0.2s;
+}
+
+.adv-info-card:hover {
+	background: rgba(255, 255, 255, 0.035);
+	border-color: rgba(124, 108, 235, 0.15);
+}
+
+.adv-info-side-grid {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.adv-info-card.mini {
+	flex: 1;
+	padding: 18px 20px;
+}
+
+.adv-info-label {
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	font-weight: 700;
+	color: var(--text-muted, #7b7394);
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.adv-info-value {
+	color: var(--text-primary, #f0ecf8);
+}
+
+.adv-info-value.flex-val {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 1rem;
+	font-weight: 600;
+	margin-top: 4px;
+}
+
+/* ---- Subtasks Section ---- */
+.adv-subtasks-section {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+.adv-subtasks-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding-bottom: 10px;
+	border-bottom: 1px solid var(--card-border, rgba(124, 108, 235, 0.08));
+}
+
+.adv-subtasks-header h3 {
+	margin: 0;
+	font-size: 1.1rem;
+	font-weight: 700;
+	color: var(--text-primary, #f0ecf8);
+	letter-spacing: -0.01em;
+}
+
+.adv-progress-indicator {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.adv-progress-text {
+	font-size: 0.85rem;
+	color: var(--text-secondary, #9b93b4);
+	font-weight: 500;
+}
+
+.adv-progress-track {
+	width: 140px;
+	height: 8px;
+	background: rgba(0, 0, 0, 0.2);
+	border-radius: 100px;
+	overflow: hidden;
+	border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.adv-progress-fill {
+	height: 100%;
+	border-radius: 100px;
+	transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.adv-subtasks-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.adv-empty-state {
+	padding: 32px;
+	text-align: center;
+	color: var(--text-muted, #7b7394);
+	font-size: 0.9rem;
+	font-weight: 500;
+	background: rgba(255, 255, 255, 0.02);
+	border-radius: 12px;
+	border: 1px dashed rgba(255, 255, 255, 0.1);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
+
+.adv-subtask-item {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	padding: 16px 20px;
+	background: rgba(255, 255, 255, 0.02);
+	border: 1px solid var(--card-border, rgba(124, 108, 235, 0.08));
+	border-radius: 12px;
+	transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.adv-subtask-item:hover {
+	background: var(--row-hover, rgba(124, 108, 235, 0.05));
+	transform: translateX(4px);
+}
+
+.adv-subtask-item.completed {
+	opacity: 0.7;
+	background: rgba(0, 0, 0, 0.1);
+	border-color: rgba(34, 197, 94, 0.15);
+}
+
+.adv-subtask-item.completed .adv-st-title {
+	text-decoration: line-through;
+	color: var(--text-muted, #7b7394);
+}
+
+.adv-st-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 8px;
+}
+
+.adv-st-content {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	flex: 1;
+}
+
+.adv-st-title {
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: var(--text-primary, #f0ecf8);
+}
+
+.adv-st-meta {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	font-size: 0.75rem;
+	color: var(--text-secondary, #9b93b4);
+	font-weight: 500;
+}
+
+.adv-st-meta span {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+/* Light Theme overrides using Dashboard.css light theme semantics (if present) */
+[data-theme="light"] .adv-card {
+	background: #ffffff;
+	border-color: rgba(124, 108, 235, 0.15);
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .adv-card::before {
+	background: radial-gradient(
+		ellipse 60% 100% at 50% 0%,
+		rgba(124, 108, 235, 0.08) 0%,
+		transparent 100%
+	);
+}
+
+[data-theme="light"] .adv-title {
+	color: #1e1a33;
+}
+
+[data-theme="light"] .adv-header {
+	background: linear-gradient(180deg, rgba(124, 108, 235, 0.04) 0%, transparent 100%);
+}
+
+[data-theme="light"] .adv-info-card {
+	background: #f8f9fa;
+}
+
+[data-theme="light"] .adv-subtask-item {
+	background: #fff;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+@media (max-width: 768px) {
+	.adv-header {
+		flex-direction: column;
+		align-items: flex-start;
+		padding: 20px;
+	}
+	.adv-header-actions {
+		width: 100%;
+		justify-content: flex-start;
+	}
+	.adv-body {
+		padding: 20px;
+	}
+	.adv-info-grid {
+		grid-template-columns: 1fr;
+	}
+}

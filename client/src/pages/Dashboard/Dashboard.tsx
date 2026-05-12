@@ -104,9 +104,9 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 					? "create"
 					: pathname.match(/^\/actividad\/\d+\/edit$/)
 						? "activity_edit"
-					: pathname.match(/^\/actividad\/\d+$/)
-						? "activity_detail"
-						: "today";
+						: pathname.match(/^\/actividad\/\d+$/)
+							? "activity_detail"
+							: "today";
 	const [searchOpen, setSearchOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showWave, setShowWave] = useState(false);
@@ -1311,12 +1311,19 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 								)}
 							</div>
 
-
 							<div className="header-right">
 								<div
 									className="filter-wrapper"
 									ref={filterRef}
-									style={{ display: (activeNav === "today" || activeNav === "create" || activeNav === "activity_edit" || activeNav === "activity_detail") ? "none" : undefined }}
+									style={{
+										display:
+											activeNav === "today" ||
+											activeNav === "create" ||
+											activeNav === "activity_edit" ||
+											activeNav === "activity_detail"
+												? "none"
+												: undefined,
+									}}
 									data-testid="dashboard-filter-wrapper"
 								>
 									<button
@@ -1438,9 +1445,16 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 									</div>
 								</div>
 
-								<div 
+								<div
 									className={`search-wrapper ${searchOpen ? "open" : ""}`}
-									style={{ display: (activeNav === "create" || activeNav === "activity_edit" || activeNav === "activity_detail") ? "none" : undefined }}
+									style={{
+										display:
+											activeNav === "create" ||
+											activeNav === "activity_edit" ||
+											activeNav === "activity_detail"
+												? "none"
+												: undefined,
+									}}
 								>
 									<button
 										className="btn-search"
@@ -1625,9 +1639,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 						)}
 
 						{/* ===== ACTIVITY DETAIL VIEW ===== */}
-						{activeNav === "activity_detail" && (
-							<ActivityDetailView activities={activities} />
-						)}
+						{activeNav === "activity_detail" && <ActivityDetailView activities={activities} />}
 
 						{/* ===== EDIT ACTIVITY VIEW ===== */}
 						{activeNav === "activity_edit" && (
@@ -1640,13 +1652,15 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 								onSave={async (id, payload) => {
 									try {
 										const updated = await updateActivity(id, payload);
-										setActivities((prev) => prev.map((a) => (a.id === id ? { ...a, ...updated } : a)));
-										
+										setActivities((prev) =>
+											prev.map((a) => (a.id === id ? { ...a, ...updated } : a)),
+										);
+
 										// Recalculate conflicts if necessary
 										if (payload.due_date) {
 											void refreshConflicts();
 										}
-										
+
 										const dueInToday = updated.due_date === todayDateKey;
 										if (dueInToday) {
 											const currentTodayHours = dateLoadMap[todayDateKey] ?? 0;
@@ -1658,7 +1672,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 												warnTodayConflictAfterScheduling("editar");
 											}
 										}
-										
+
 										toast.success("Actividad actualizada");
 									} catch (err) {
 										console.error("Failed to update activity:", err);

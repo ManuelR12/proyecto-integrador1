@@ -608,10 +608,12 @@ export default function OrganizationView({
 																			transition: "color 0.15s",
 																		}}
 																		onMouseOver={(e) => {
-																			if (act.status !== "completed") e.currentTarget.style.color = "#c084fc";
+																			if (act.status !== "completed")
+																				e.currentTarget.style.color = "#c084fc";
 																		}}
 																		onMouseOut={(e) => {
-																			if (act.status !== "completed") e.currentTarget.style.color = ov.actTitle;
+																			if (act.status !== "completed")
+																				e.currentTarget.style.color = ov.actTitle;
 																		}}
 																	>
 																		{act.title}
@@ -1384,8 +1386,6 @@ export default function OrganizationView({
 					</div>,
 					document.body,
 				)}
-
-
 		</>
 	);
 }

@@ -25,7 +25,7 @@ export default function ActivityDetailView({ activities }: ActivityDetailViewPro
 	const { isDark } = useTheme();
 	const activityId = Number(id);
 
-	// Basic activity data 
+	// Basic activity data
 	const activity = useMemo(
 		() => activities.find((a) => a.id === activityId) ?? null,
 		[activities, activityId],
@@ -37,19 +37,23 @@ export default function ActivityDetailView({ activities }: ActivityDetailViewPro
 
 	useEffect(() => {
 		if (activityId) {
-			setLoadingSubtasks(true);
-			fetchSubtasks(activityId)
-				.then((data) => {
-					// sort by target_date then ordering
+			const load = async () => {
+				setLoadingSubtasks(true);
+				try {
+					const data = await fetchSubtasks(activityId);
 					data.sort((a, b) => {
 						const dateCmp = new Date(a.target_date).getTime() - new Date(b.target_date).getTime();
 						if (dateCmp !== 0) return dateCmp;
 						return a.ordering - b.ordering;
 					});
 					setSubtasks(data);
-				})
-				.catch(console.error)
-				.finally(() => setLoadingSubtasks(false));
+				} catch (err) {
+					console.error(err);
+				} finally {
+					setLoadingSubtasks(false);
+				}
+			};
+			load();
 		}
 	}, [activityId]);
 
@@ -107,9 +111,12 @@ export default function ActivityDetailView({ activities }: ActivityDetailViewPro
 				{/* HEADER */}
 				<div className="adv-header">
 					<div className="adv-header-left">
-						<div className="adv-header-icon" style={{
-							color: statusColors[activity.status] || "#94a3b8",
-						}}>
+						<div
+							className="adv-header-icon"
+							style={{
+								color: statusColors[activity.status] || "#94a3b8",
+							}}
+						>
 							{activity.status === "completed" ? <CheckCircle2 size={26} /> : <Circle size={26} />}
 						</div>
 						<div className="adv-header-text">
@@ -119,10 +126,13 @@ export default function ActivityDetailView({ activities }: ActivityDetailViewPro
 									<BookOpen size={14} />
 									{activity.course_name || "Sin materia"}
 								</span>
-								<span className="adv-meta-status" style={{ 
-									color: statusColors[activity.status],
-									border: `1px solid ${statusColors[activity.status]}33`
-								}}>
+								<span
+									className="adv-meta-status"
+									style={{
+										color: statusColors[activity.status],
+										border: `1px solid ${statusColors[activity.status]}33`,
+									}}
+								>
 									{statusLabels[activity.status] || activity.status}
 								</span>
 							</div>
@@ -148,17 +158,20 @@ export default function ActivityDetailView({ activities }: ActivityDetailViewPro
 							<div className="adv-info-label">
 								<BookOpen size={14} /> Descripción
 							</div>
-							<div className="adv-info-value" style={{ 
-								whiteSpace: "pre-wrap", 
-								fontSize: "15px", 
-								lineHeight: 1.6, 
-								minHeight: "100px",
-								opacity: activity.description ? 1 : 0.4
-							}}>
+							<div
+								className="adv-info-value"
+								style={{
+									whiteSpace: "pre-wrap",
+									fontSize: "15px",
+									lineHeight: 1.6,
+									minHeight: "100px",
+									opacity: activity.description ? 1 : 0.4,
+								}}
+							>
 								{activity.description || "Esta actividad no tiene una descripción detallada."}
 							</div>
 						</div>
-						
+
 						<div className="adv-info-side-grid">
 							<div className="adv-info-card mini">
 								<div className="adv-info-label">Fecha de entrega</div>
@@ -186,13 +199,14 @@ export default function ActivityDetailView({ activities }: ActivityDetailViewPro
 									{completedSubtasks} de {totalSubtasks} completadas
 								</div>
 								<div className="adv-progress-track">
-									<div 
-										className="adv-progress-fill" 
-										style={{ 
-											width: `${progressPercent}%`, 
-											background: progressPercent === 100 
-												? "linear-gradient(90deg, #22c55e, #10b981)" 
-												: "linear-gradient(90deg, #7c3aed, #a78bfa)" 
+									<div
+										className="adv-progress-fill"
+										style={{
+											width: `${progressPercent}%`,
+											background:
+												progressPercent === 100
+													? "linear-gradient(90deg, #22c55e, #10b981)"
+													: "linear-gradient(90deg, #7c3aed, #a78bfa)",
 										}}
 									/>
 								</div>
@@ -202,7 +216,11 @@ export default function ActivityDetailView({ activities }: ActivityDetailViewPro
 						<div className="adv-subtasks-list">
 							{loadingSubtasks ? (
 								<p className="adv-empty-state">
-									<Circle className="spin" size={24} style={{ opacity: 0.5, marginBottom: "10px" }} />
+									<Circle
+										className="spin"
+										size={24}
+										style={{ opacity: 0.5, marginBottom: "10px" }}
+									/>
 									Cargando subtareas...
 								</p>
 							) : subtasks.length === 0 ? (
@@ -212,13 +230,27 @@ export default function ActivityDetailView({ activities }: ActivityDetailViewPro
 								</div>
 							) : (
 								subtasks.map((st) => (
-									<div key={st.id} className={`adv-subtask-item ${st.status === "completed" ? "completed" : ""}`}>
-										<div className="adv-st-icon" style={{
-											background: st.status === "completed" ? "rgba(34, 197, 94, 0.15)" : "rgba(255, 255, 255, 0.05)",
-										}}>
-											{st.status === "completed" 
-												? <CheckCircle2 size={18} color="#4ade80" /> 
-												: <Circle size={18} color={isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)"} />}
+									<div
+										key={st.id}
+										className={`adv-subtask-item ${st.status === "completed" ? "completed" : ""}`}
+									>
+										<div
+											className="adv-st-icon"
+											style={{
+												background:
+													st.status === "completed"
+														? "rgba(34, 197, 94, 0.15)"
+														: "rgba(255, 255, 255, 0.05)",
+											}}
+										>
+											{st.status === "completed" ? (
+												<CheckCircle2 size={18} color="#4ade80" />
+											) : (
+												<Circle
+													size={18}
+													color={isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)"}
+												/>
+											)}
 										</div>
 										<div className="adv-st-content">
 											<div className="adv-st-title">{st.name}</div>

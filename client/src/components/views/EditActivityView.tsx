@@ -1,13 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-	Pencil,
-	ArrowLeft,
-	Loader2,
-	CheckCircle2,
-	CalendarDays,
-	AlertCircle,
-} from "lucide-react";
+import { Pencil, ArrowLeft, Loader2, CheckCircle2, CalendarDays, AlertCircle } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { type Activity } from "@/api/dashboard";
 import "./EditActivityView.css";
@@ -83,11 +76,14 @@ export default function EditActivityView({
 	/* Update form state when activity is asynchronously loaded/changed */
 	useEffect(() => {
 		if (activity) {
-			setTitle(activity.title ?? "");
-			setDescription(activity.description ?? "");
-			setDueDate(activity.due_date ?? "");
-			setStatus(activity.status ?? "pending");
-			setCourseName(activity.course_name ?? "");
+			const init = () => {
+				setTitle(activity.title ?? "");
+				setDescription(activity.description ?? "");
+				setDueDate(activity.due_date ?? "");
+				setStatus(activity.status ?? "pending");
+				setCourseName(activity.course_name ?? "");
+			};
+			init();
 		}
 	}, [activity]);
 
@@ -150,9 +146,7 @@ export default function EditActivityView({
 							</div>
 							<div className="eav-header-text">
 								<h3>Actividad no encontrada</h3>
-								<p className="eav-header-subtitle">
-									No se encontró una actividad con ID {id}
-								</p>
+								<p className="eav-header-subtitle">No se encontró una actividad con ID {id}</p>
 							</div>
 						</div>
 						<button
@@ -326,11 +320,7 @@ export default function EditActivityView({
 										<span>Capacidad para {formatDate(dueDate)}</span>
 										<strong
 											style={{
-												color: dueDateHasConflict
-													? "#fca5a5"
-													: isDark
-														? "#c4b5fd"
-														: "#7c3aed",
+												color: dueDateHasConflict ? "#fca5a5" : isDark ? "#c4b5fd" : "#7c3aed",
 											}}
 										>
 											{maxDailyHours > 0
@@ -354,11 +344,7 @@ export default function EditActivityView({
 									<p
 										className="eav-capacity-hint"
 										style={{
-											color: dueDateHasConflict
-												? "#fca5a5"
-												: isDark
-													? "#a78bfa"
-													: "#6d28d9",
+											color: dueDateHasConflict ? "#fca5a5" : isDark ? "#a78bfa" : "#6d28d9",
 										}}
 									>
 										{dueDateHasConflict

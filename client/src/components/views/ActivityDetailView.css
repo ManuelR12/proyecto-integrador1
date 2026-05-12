@@ -167,7 +167,6 @@
 	color: var(--text-primary, #f0ecf8);
 }
 
-
 /* ---- Body ---- */
 .adv-body {
 	padding: 30px;
@@ -193,7 +192,9 @@
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
-	transition: background 0.2s, border-color 0.2s;
+	transition:
+		background 0.2s,
+		border-color 0.2s;
 }
 
 .adv-info-card:hover {
@@ -235,7 +236,6 @@
 	font-weight: 600;
 	margin-top: 4px;
 }
-
 
 /* ---- Subtasks Section ---- */
 .adv-subtasks-section {
@@ -402,19 +402,23 @@
 
 [data-theme="light"] .adv-subtask-item {
 	background: #fff;
-	box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 @media (max-width: 768px) {
-	.adv-header { 
-		flex-direction: column; 
+	.adv-header {
+		flex-direction: column;
 		align-items: flex-start;
-		padding: 20px; 
+		padding: 20px;
 	}
 	.adv-header-actions {
 		width: 100%;
 		justify-content: flex-start;
 	}
-	.adv-body { padding: 20px; }
-	.adv-info-grid { grid-template-columns: 1fr; }
+	.adv-body {
+		padding: 20px;
+	}
+	.adv-info-grid {
+		grid-template-columns: 1fr;
+	}
 }

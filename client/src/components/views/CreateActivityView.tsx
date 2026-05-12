@@ -501,7 +501,11 @@ export default function CreateActivityView({
 	const slideClass = slideDir === "forward" ? "ca-step-slide-forward" : "ca-step-slide-back";
 
 	return (
-		<div className="cav-container fade-in" data-testid="create-activity-view" style={{ animationDelay: "0.2s" }}>
+		<div
+			className="cav-container fade-in"
+			data-testid="create-activity-view"
+			style={{ animationDelay: "0.2s" }}
+		>
 			<div className="cav-card">
 				{/* ====== HEADER ====== */}
 				<div className="cav-header">

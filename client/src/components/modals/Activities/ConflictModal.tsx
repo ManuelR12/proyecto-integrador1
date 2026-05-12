@@ -223,8 +223,8 @@ export default function ConflictModal({
 				<div>
 					<h3>¡Tienes un conflicto de carga! ⚠️</h3>
 					<p>
-						Esto ocurre cuando programas más horas de las que puedes estudiar en un día.
-						Aquí puedes resolverlos subtarea por subtarea.
+						Esto ocurre cuando programas más horas de las que puedes estudiar en un día. Aquí puedes
+						resolverlos subtarea por subtarea.
 					</p>
 				</div>
 			),
@@ -367,35 +367,35 @@ export default function ConflictModal({
 	const suggestedDateCandidate =
 		resolver?.mode === "date"
 			? (() => {
-				const searchFrom = resolver.value || resolver.conflict.date;
-				const currentDate = resolver.subtask.targetDate ?? resolver.conflict.date;
-				const conflictDates = conflicts.map((item) => item.date);
-				const isOverdueConflict = resolver.conflict.date < todayIso;
+					const searchFrom = resolver.value || resolver.conflict.date;
+					const currentDate = resolver.subtask.targetDate ?? resolver.conflict.date;
+					const conflictDates = conflicts.map((item) => item.date);
+					const isOverdueConflict = resolver.conflict.date < todayIso;
 
-				if (isOverdueConflict) {
-					return getNextFutureIdleDate({
-						startDate: searchFrom,
-						minDate: tomorrowIso,
-						currentDate,
-						movingHours: resolver.subtask.estimatedHours,
-						dateLoadMap,
-						maxDailyHours,
-						conflictDates,
-					});
-				}
+					if (isOverdueConflict) {
+						return getNextFutureIdleDate({
+							startDate: searchFrom,
+							minDate: tomorrowIso,
+							currentDate,
+							movingHours: resolver.subtask.estimatedHours,
+							dateLoadMap,
+							maxDailyHours,
+							conflictDates,
+						});
+					}
 
-				return (
-					getNextCapacitySafeDate({
-						startDate: searchFrom,
-						minDate: todayIso,
-						currentDate,
-						movingHours: resolver.subtask.estimatedHours,
-						dateLoadMap,
-						maxDailyHours,
-						blockedDates: conflictDates,
-					}) ?? getNextConflictFreeDate(searchFrom, conflictDates, todayIso)
-				);
-			})()
+					return (
+						getNextCapacitySafeDate({
+							startDate: searchFrom,
+							minDate: todayIso,
+							currentDate,
+							movingHours: resolver.subtask.estimatedHours,
+							dateLoadMap,
+							maxDailyHours,
+							blockedDates: conflictDates,
+						}) ?? getNextConflictFreeDate(searchFrom, conflictDates, todayIso)
+					);
+				})()
 			: null;
 
 	const suggestedDate =
@@ -406,19 +406,19 @@ export default function ConflictModal({
 	const suggestedHours =
 		resolver?.mode === "hours"
 			? (() => {
-				const currentHours = Number(resolver.subtask.estimatedHours) || 0;
-				if (currentHours <= 1) return null;
+					const currentHours = Number(resolver.subtask.estimatedHours) || 0;
+					if (currentHours <= 1) return null;
 
-				const overloadHours = Math.max(
-					resolver.conflict.plannedHours - resolver.conflict.maxHours,
-					0,
-				);
-				const reduced = normalizeHourValue(currentHours - overloadHours);
-				const bounded = Math.max(1, reduced);
+					const overloadHours = Math.max(
+						resolver.conflict.plannedHours - resolver.conflict.maxHours,
+						0,
+					);
+					const reduced = normalizeHourValue(currentHours - overloadHours);
+					const bounded = Math.max(1, reduced);
 
-				if (!Number.isFinite(bounded) || bounded >= currentHours) return null;
-				return bounded;
-			})()
+					if (!Number.isFinite(bounded) || bounded >= currentHours) return null;
+					return bounded;
+				})()
 			: null;
 
 	const suggestedHoursLabel =

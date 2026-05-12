@@ -63,7 +63,7 @@ export default function Register() {
 		if (formDisabled) return;
 		setSwitchingToLogin(true);
 		switchTimerRef.current = window.setTimeout(() => {
-			navigate("/login");
+			navigate("/auth");
 		}, 240);
 	};
 
@@ -110,7 +110,7 @@ export default function Register() {
 			setCardState("success");
 			setIsLoading(false);
 			toast.success("¡Cuenta creada! Ahora inicia sesión.");
-			setTimeout(() => navigate("/login"), 700);
+			setTimeout(() => navigate("/auth"), 700);
 		} catch (error: unknown) {
 			const errResponse =
 				typeof error === "object" && error !== null && "response" in error

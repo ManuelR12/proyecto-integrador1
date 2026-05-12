@@ -428,8 +428,7 @@ export default function ConflictModal({
 				: suggestedHours.toFixed(2).replace(/\.00$/, "").replace(/0$/, "")
 			: "";
 
-	if (!conflicts.length) return null;
-
+	// En lugar de no renderizar nada, mostraremos un empty state si no hay conflictos.
 	return createPortal(
 		<div
 			className={`cf-layer ${isClosing ? "is-closing" : ""}`}
@@ -469,120 +468,155 @@ export default function ConflictModal({
 				</header>
 
 				<div className="cf-content">
-					{conflicts.map((conflict) => {
-						const isExpanded = expandedId === conflict.id;
-
-						return (
-							<article
-								key={conflict.id}
-								className={`cf-item ${isExpanded ? "is-expanded" : ""}`}
-								data-testid={`conflict-item-${conflict.id}`}
+					{conflicts.length === 0 ? (
+						<div
+							style={{
+								padding: "4rem 2rem",
+								textAlign: "center",
+								display: "flex",
+								flexDirection: "column",
+								alignItems: "center",
+								justifyContent: "center",
+								color: "#8896c8",
+							}}
+						>
+							<div
+								style={{
+									width: "60px",
+									height: "60px",
+									borderRadius: "16px",
+									background: "rgba(245, 158, 11, 0.08)",
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "center",
+									marginBottom: "1rem",
+								}}
 							>
-								<div className="cf-item-summary">
-									<div className="cf-title-wrap">
-										<h3>{conflict.title}</h3>
-										<p>{conflict.subtitle}</p>
-									</div>
+								<AlertTriangle size={28} color="#fbbf24" style={{ opacity: 0.8 }} />
+							</div>
+							<h3 style={{ margin: "0 0 8px 0", fontSize: "1.1rem", color: "#e8ecff" }}>
+								Todo está en orden
+							</h3>
+							<p style={{ margin: 0, fontSize: "0.9rem", color: "rgba(255, 255, 255, 0.56)" }}>
+								No tienes conflictos de estado o sobrecarga en tus próximos días.
+							</p>
+						</div>
+					) : (
+						conflicts.map((conflict) => {
+							const isExpanded = expandedId === conflict.id;
 
-									<div className="cf-meta-block">
-										<span className="cf-meta-label">Fecha</span>
-										<span className="cf-meta-value">{formatConflictDate(conflict.date)}</span>
-									</div>
-
-									<div className="cf-meta-block">
-										<span className="cf-meta-label">Carga ese dia</span>
-										<span className="cf-hours-value">
-											{conflict.plannedHours}h / {conflict.maxHours}h max
-										</span>
-									</div>
-
-									<button
-										type="button"
-										className="cf-toggle"
-										onClick={() => setExpandedId(isExpanded ? null : conflict.id)}
-										data-testid={`conflict-item-toggle-btn-${conflict.id}`}
-									>
-										{isExpanded ? "Ocultar" : "Resolver"}
-										{isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-									</button>
-								</div>
-
-								<div
-									className={`cf-item-details-shell ${isExpanded ? "is-open" : ""}`}
-									aria-hidden={!isExpanded}
+							return (
+								<article
+									key={conflict.id}
+									className={`cf-item ${isExpanded ? "is-expanded" : ""}`}
+									data-testid={`conflict-item-${conflict.id}`}
 								>
-									<div className="cf-item-details">
-										<div className="cf-detail-head">
-											<CalendarClock size={14} />
-											<span>Resuelve por subtarea</span>
+									<div className="cf-item-summary">
+										<div className="cf-title-wrap">
+											<h3>{conflict.title}</h3>
+											<p>{conflict.subtitle}</p>
 										</div>
 
-										{conflict.subtasks.length ? (
-											<div className="cf-subtasks">
-												{conflict.subtasks.map((subtask) => (
-													<div
-														key={subtask.id}
-														className="cf-subtask-row"
-														data-testid={`conflict-subtask-row-${subtask.id}`}
-													>
-														<div className="cf-subtask-main">
-															<div className="cf-subtask-name">{subtask.name}</div>
-															<div className="cf-subtask-meta">
-																{subtask.activityTitle}
-																{subtask.courseName ? ` · ${subtask.courseName}` : ""}
-															</div>
-														</div>
-														<div className="cf-subtask-hours">
-															<Hourglass size={14} />
-															{subtask.estimatedHours}h
-														</div>
-														<div className="cf-subtask-actions">
-															<button
-																type="button"
-																className="cf-solution-btn is-primary"
-																onClick={() => {
-																	openResolver("date", conflict, subtask);
-																}}
-																data-testid={`conflict-subtask-change-date-btn-${subtask.id}`}
-															>
-																<span>Cambiar fecha</span>
-																<em>Mover a un dia mas liviano</em>
-															</button>
-															<button
-																type="button"
-																className="cf-solution-btn"
-																onClick={() => {
-																	openResolver("hours", conflict, subtask);
-																}}
-																data-testid={`conflict-subtask-adjust-hours-btn-${subtask.id}`}
-															>
-																<span>Ajustar horas</span>
-																<em>Reducir carga de esta subtarea</em>
-															</button>
-														</div>
-													</div>
-												))}
-											</div>
-										) : (
-											<div className="cf-empty-detail">
-												No se encontraron subtareas detalladas para esta fecha, pero el backend
-												reporta una sobrecarga activa.
-											</div>
-										)}
+										<div className="cf-meta-block">
+											<span className="cf-meta-label">Fecha</span>
+											<span className="cf-meta-value">{formatConflictDate(conflict.date)}</span>
+										</div>
+
+										<div className="cf-meta-block">
+											<span className="cf-meta-label">Carga ese dia</span>
+											<span className="cf-hours-value">
+												{conflict.plannedHours}h / {conflict.maxHours}h max
+											</span>
+										</div>
 
 										<button
 											type="button"
-											className="cf-link"
-											onClick={() => setExpandedId(null)}
-											data-testid={`conflict-item-close-btn-${conflict.id}`}
+											className="cf-toggle"
+											onClick={() => setExpandedId(isExpanded ? null : conflict.id)}
+											data-testid={`conflict-item-toggle-btn-${conflict.id}`}
 										>
-											Ver despues
+											{isExpanded ? "Ocultar" : "Resolver"}
+											{isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
 										</button>
 									</div>
-								</div>
-							</article>
-						);
-					})}
+
+									<div
+										className={`cf-item-details-shell ${isExpanded ? "is-open" : ""}`}
+										aria-hidden={!isExpanded}
+									>
+										<div className="cf-item-details">
+											<div className="cf-detail-head">
+												<CalendarClock size={14} />
+												<span>Resuelve por subtarea</span>
+											</div>
+
+											{conflict.subtasks.length ? (
+												<div className="cf-subtasks">
+													{conflict.subtasks.map((subtask) => (
+														<div
+															key={subtask.id}
+															className="cf-subtask-row"
+															data-testid={`conflict-subtask-row-${subtask.id}`}
+														>
+															<div className="cf-subtask-main">
+																<div className="cf-subtask-name">{subtask.name}</div>
+																<div className="cf-subtask-meta">
+																	{subtask.activityTitle}
+																	{subtask.courseName ? ` · ${subtask.courseName}` : ""}
+																</div>
+															</div>
+															<div className="cf-subtask-hours">
+																<Hourglass size={14} />
+																{subtask.estimatedHours}h
+															</div>
+															<div className="cf-subtask-actions">
+																<button
+																	type="button"
+																	className="cf-solution-btn is-primary"
+																	onClick={() => {
+																		openResolver("date", conflict, subtask);
+																	}}
+																	data-testid={`conflict-subtask-change-date-btn-${subtask.id}`}
+																>
+																	<span>Cambiar fecha</span>
+																	<em>Mover a un dia mas liviano</em>
+																</button>
+																<button
+																	type="button"
+																	className="cf-solution-btn"
+																	onClick={() => {
+																		openResolver("hours", conflict, subtask);
+																	}}
+																	data-testid={`conflict-subtask-adjust-hours-btn-${subtask.id}`}
+																>
+																	<span>Ajustar horas</span>
+																	<em>Reducir carga de esta subtarea</em>
+																</button>
+															</div>
+														</div>
+													))}
+												</div>
+											) : (
+												<div className="cf-empty-detail">
+													No se encontraron subtareas detalladas para esta fecha, pero el backend
+													reporta una sobrecarga activa.
+												</div>
+											)}
+
+											<button
+												type="button"
+												className="cf-link"
+												onClick={() => setExpandedId(null)}
+												data-testid={`conflict-item-close-btn-${conflict.id}`}
+											>
+												Ver despues
+											</button>
+										</div>
+									</div>
+								</article>
+							);
+						})
+					)}
 				</div>
 
 				<footer className="cf-footer">

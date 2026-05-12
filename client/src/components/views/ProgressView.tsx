@@ -2,12 +2,14 @@ import { useMemo, useState } from "react";
 import { type Activity } from "@/api/dashboard";
 import { useTheme } from "@/hooks/useTheme";
 import Pagination from "@/components/ui/Pagination";
+import { ClipboardList, Plus } from "lucide-react";
 
 interface ProgressViewProps {
 	activities: Activity[];
+	onOpenCreate?: () => void;
 }
 
-export default function ProgressView({ activities }: ProgressViewProps) {
+export default function ProgressView({ activities, onOpenCreate }: ProgressViewProps) {
 	const { isDark } = useTheme();
 	const [page, setPage] = useState(1);
 	const LIMIT = 10;
@@ -183,9 +185,86 @@ export default function ProgressView({ activities }: ProgressViewProps) {
 					style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}
 				>
 					{activities.length === 0 && (
-						<p style={{ color: subClr, fontSize: "14px", textAlign: "center" }}>
-							No hay actividades registradas.
-						</p>
+						<div
+							style={{
+								padding: "3rem 1rem",
+								textAlign: "center",
+								display: "flex",
+								flexDirection: "column",
+								alignItems: "center",
+								justifyContent: "center",
+							}}
+						>
+							<div
+								style={{
+									width: "60px",
+									height: "60px",
+									borderRadius: "50%",
+									background: isDark ? "rgba(99,102,241,0.08)" : "rgba(124,92,255,0.06)",
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "center",
+									marginBottom: "1rem",
+								}}
+							>
+								<ClipboardList
+									size={28}
+									color={isDark ? "#818cf8" : "#7c3aed"}
+									strokeWidth={2}
+									style={{ opacity: 0.8 }}
+								/>
+							</div>
+							<p
+								style={{
+									color: txtClr,
+									fontSize: "16px",
+									fontWeight: 600,
+									margin: "0 0 8px 0",
+								}}
+							>
+								Aún no hay actividades
+							</p>
+							<p
+								style={{
+									color: subClr,
+									fontSize: "14px",
+									marginBottom: "1.5rem",
+									maxWidth: "340px",
+								}}
+							>
+								Empieza a agregar actividades para poder visualizar y hacer seguimiento a tu
+								progreso general.
+							</p>
+							<button
+								onClick={onOpenCreate}
+								style={{
+									display: "inline-flex",
+									alignItems: "center",
+									gap: "6px",
+									background: "#7c3aed",
+									color: "#fff",
+									border: "none",
+									padding: "10px 18px",
+									borderRadius: "8px",
+									fontSize: "14px",
+									fontWeight: 600,
+									cursor: "pointer",
+									boxShadow: "0 2px 10px rgba(124,92,255,0.25)",
+									transition: "all 0.2s",
+								}}
+								onMouseEnter={(e) => {
+									e.currentTarget.style.transform = "translateY(-1px)";
+									e.currentTarget.style.boxShadow = "0 4px 14px rgba(124,92,255,0.4)";
+								}}
+								onMouseLeave={(e) => {
+									e.currentTarget.style.transform = "none";
+									e.currentTarget.style.boxShadow = "0 2px 10px rgba(124,92,255,0.25)";
+								}}
+							>
+								<Plus size={16} strokeWidth={2.5} />
+								Crear nueva actividad
+							</button>
+						</div>
 					)}
 					{activities.slice((page - 1) * LIMIT, page * LIMIT).map((act) => {
 						const totalSubs = act.total_subtasks_count ?? act.subtask_count ?? 0;

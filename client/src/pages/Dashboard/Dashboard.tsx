@@ -1065,7 +1065,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 					</div>,
 					document.body,
 				)}
-			{conflictsOpen && conflictModalItems.length > 0 && (
+			{conflictsOpen && (
 				<ConflictModal
 					conflicts={conflictModalItems}
 					dateLoadMap={dateLoadMap}
@@ -1215,11 +1215,8 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 					data-testid="dashboard-conflicts-btn"
 					onClick={async () => {
 						if (sidebarConflictsLoading) return;
-						const conflicts = await refreshConflicts();
-						if (!conflicts.length) {
-							toast.success("No tienes conflictos pendientes.");
-							return;
-						}
+						await refreshConflicts();
+
 						setConflictsOpen(true);
 						if (activeNav !== "today") navigate("/hoy");
 					}}
@@ -1628,7 +1625,9 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 						)}
 
 						{/* ===== PROGRESS VIEW ===== */}
-						{activeNav === "progress" && <ProgressView activities={activities} />}
+						{activeNav === "progress" && (
+							<ProgressView activities={activities} onOpenCreate={() => setCreateOpen(true)} />
+						)}
 					</>
 				)}
 				{/* Subject name modal (from header button) */}

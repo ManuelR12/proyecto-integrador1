@@ -15,6 +15,7 @@ class UserOnboardingSerializer(serializers.ModelSerializer):
 			"has_seen_conflict_tour",
 		]
 
+
 class UserSerializer(serializers.ModelSerializer):
 	onboarding = serializers.SerializerMethodField()
 

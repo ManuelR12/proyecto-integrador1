@@ -87,6 +87,8 @@ function AppRoutes() {
 					<Route path="/organizacion" element={null} />
 					<Route path="/progreso" element={null} />
 					<Route path="/crear" element={null} />
+					<Route path="/actividad/:id" element={null} />
+					<Route path="/actividad/:id/edit" element={null} />
 				</Route>
 
 				{/* ── Fallback ── */}

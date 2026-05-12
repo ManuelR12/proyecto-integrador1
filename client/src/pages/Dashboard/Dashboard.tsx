@@ -40,6 +40,7 @@ import {
 	fetchConflicts,
 	createActivity,
 	deleteActivity,
+	updateActivity,
 	updateSubtask,
 	fetchSubjects,
 	createSubject,
@@ -55,6 +56,8 @@ import type { NewActivityPayloadFromModal } from "@/pages/Dashboard/utils/dashbo
 import { toast } from "sonner";
 import "@/pages/Dashboard/Dashboard.css";
 import CreateActivityView from "@/components/views/CreateActivityView";
+import EditActivityView from "@/components/views/EditActivityView";
+import ActivityDetailView from "@/components/views/ActivityDetailView";
 import {
 	checkDailyConflicts,
 	type KanbanGroup,
@@ -99,7 +102,11 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 				? "progress"
 				: pathname === "/crear"
 					? "create"
-					: "today";
+					: pathname.match(/^\/actividad\/\d+\/edit$/)
+						? "activity_edit"
+					: pathname.match(/^\/actividad\/\d+$/)
+						? "activity_detail"
+						: "today";
 	const [searchOpen, setSearchOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showWave, setShowWave] = useState(false);
@@ -275,6 +282,18 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 					title: "Nueva actividad",
 					TitleIcon: ClipboardList,
 					tipText: "Crea una nueva actividad con subtareas y planifica tu día.",
+				};
+			case "activity_detail":
+				return {
+					title: "Detalles de actividad",
+					TitleIcon: ClipboardList,
+					tipText: "Detalles completos y progreso de tus subtareas asociadas.",
+				};
+			case "activity_edit":
+				return {
+					title: "Editar actividad",
+					TitleIcon: ClipboardList,
+					tipText: "Edita la información general de la actividad y guárdala.",
 				};
 			default:
 				return {
@@ -1297,7 +1316,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 								<div
 									className="filter-wrapper"
 									ref={filterRef}
-									style={{ display: activeNav === "today" ? "none" : undefined }}
+									style={{ display: (activeNav === "today" || activeNav === "create" || activeNav === "activity_edit" || activeNav === "activity_detail") ? "none" : undefined }}
 									data-testid="dashboard-filter-wrapper"
 								>
 									<button
@@ -1419,7 +1438,10 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 									</div>
 								</div>
 
-								<div className={`search-wrapper ${searchOpen ? "open" : ""}`}>
+								<div 
+									className={`search-wrapper ${searchOpen ? "open" : ""}`}
+									style={{ display: (activeNav === "create" || activeNav === "activity_edit" || activeNav === "activity_detail") ? "none" : undefined }}
+								>
 									<button
 										className="btn-search"
 										onClick={() => setSearchOpen(!searchOpen)}
@@ -1483,20 +1505,6 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 								dateLoadMap={dateLoadMap}
 								conflictDates={conflictDates}
 								maxDailyHours={capacityTotal}
-								onActivitySaved={(updated, previous) => {
-									void previous;
-									const dueInToday = updated.due_date === todayDateKey;
-									if (!dueInToday) return;
-
-									const currentTodayHours = dateLoadMap[todayDateKey] ?? 0;
-									const hasTodayConflict =
-										!!todayPendingConflict ||
-										(capacityTotal > 0 && currentTodayHours > capacityTotal);
-
-									if (hasTodayConflict) {
-										warnTodayConflictAfterScheduling("editar");
-									}
-								}}
 								activeFilters={activeFilters}
 								searchQuery={searchQuery}
 								expandSubject={pendingExpandSubject}
@@ -1611,6 +1619,51 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 									} catch (err) {
 										console.error("Failed to create activity:", err);
 										toast.error("Error creando la actividad. Intenta de nuevo.");
+									}
+								}}
+							/>
+						)}
+
+						{/* ===== ACTIVITY DETAIL VIEW ===== */}
+						{activeNav === "activity_detail" && (
+							<ActivityDetailView activities={activities} />
+						)}
+
+						{/* ===== EDIT ACTIVITY VIEW ===== */}
+						{activeNav === "activity_edit" && (
+							<EditActivityView
+								activities={activities}
+								subjects={knownSubjects}
+								dateLoadMap={dateLoadMap}
+								conflictDates={conflictDates}
+								maxDailyHours={capacityTotal}
+								onSave={async (id, payload) => {
+									try {
+										const updated = await updateActivity(id, payload);
+										setActivities((prev) => prev.map((a) => (a.id === id ? { ...a, ...updated } : a)));
+										
+										// Recalculate conflicts if necessary
+										if (payload.due_date) {
+											void refreshConflicts();
+										}
+										
+										const dueInToday = updated.due_date === todayDateKey;
+										if (dueInToday) {
+											const currentTodayHours = dateLoadMap[todayDateKey] ?? 0;
+											const hasTodayConflict =
+												!!todayPendingConflict ||
+												(capacityTotal > 0 && currentTodayHours > capacityTotal);
+
+											if (hasTodayConflict) {
+												warnTodayConflictAfterScheduling("editar");
+											}
+										}
+										
+										toast.success("Actividad actualizada");
+									} catch (err) {
+										console.error("Failed to update activity:", err);
+										toast.error("Error actualizando la actividad. Intenta de nuevo.");
+										throw err; // Propagate to let the view handle the error state
 									}
 								}}
 							/>

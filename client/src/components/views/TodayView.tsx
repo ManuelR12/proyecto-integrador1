@@ -212,6 +212,15 @@ export default function TodayKanban({
 		if (initialData) {
 			setKanban(initialData);
 			setKanbanLoading(false);
+			// Sync the active tab to the smart default when initialData first arrives
+			// (component may have mounted before the parent finished fetching).
+			// Only auto-switch if the user hasn't manually selected a tab yet.
+			setActiveTab((prev) => {
+				if (prev !== "upcoming") return prev;
+				if (initialData.overdue.length > 0) return "overdue";
+				if (initialData.today.length > 0) return "today";
+				return "upcoming";
+			});
 			return;
 		}
 		let cancelled = false;

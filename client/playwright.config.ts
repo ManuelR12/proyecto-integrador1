@@ -8,8 +8,8 @@ export default defineConfig({
 	/* Directorio donde viven los tests */
 	testDir: "./tests/e2e",
 
-	/* Ejecutar tests en paralelo */
-	fullyParallel: true,
+	/* Ejecutar tests en paralelo (dentro de un archivo) */
+	fullyParallel: false,
 
 	/* Fallar en CI si se dejó un test.only */
 	forbidOnly: !!process.env.CI,
@@ -17,16 +17,16 @@ export default defineConfig({
 	/* Reintentos: 2 en CI, 0 en local */
 	retries: process.env.CI ? 2 : 0,
 
-	/* Workers: 1 en CI para estabilidad, auto en local */
-	workers: process.env.CI ? 1 : undefined,
+	/* Workers: 1 en CI, 2 en local para no reventar el equipo */
+	workers: process.env.CI ? 1 : 2,
 
 	/* Reporter HTML para ver resultados visualmente */
 	reporter: [["html", { open: "never" }]],
 
 	/* Opciones compartidas por todos los tests */
 	use: {
-		/* URL base — apunta al dev server de Vite */
-		baseURL: "https://proyecto-integrador-five-gamma.vercel.app",
+		/* URL base — dev server de Vite local */
+		baseURL: "http://localhost:5173",
 
 		/* Capturar trace en primer reintento */
 		trace: "on-first-retry",
@@ -44,10 +44,11 @@ export default defineConfig({
 			name: "chromium",
 			use: { ...devices["Desktop Chrome"] },
 		},
-		{
-			name: "firefox",
-			use: { ...devices["Desktop Firefox"] },
-		},
+		/* Firefox desactivado en local para ahorrar recursos — habilitar en CI */
+		// {
+		// 	name: "firefox",
+		// 	use: { ...devices["Desktop Firefox"] },
+		// },
 
 		/* Tests en viewports móviles (descomentar si necesitas) */
 		// {

@@ -228,9 +228,15 @@ class ActivityViewSet(viewsets.ModelViewSet):
 	permission_classes = [IsAuthenticated]
 
 	def get_queryset(self):
-		return Activity.objects.filter(user=self.request.user).annotate(
-			_total_subtasks=Count("subtasks"),
-			_completed_subtasks=Count("subtasks", filter=Q(subtasks__status="completed")),
+		return (
+			Activity.objects.filter(user=self.request.user)
+			.prefetch_related("subtasks")
+			.annotate(
+				_total_subtasks=Count("subtasks", distinct=True),
+				_completed_subtasks=Count(
+					"subtasks", filter=Q(subtasks__status="completed"), distinct=True
+				),
+			)
 		)
 
 	def perform_create(self, serializer):
@@ -1210,15 +1216,66 @@ class ConflictViewSet(viewsets.ReadOnlyModelViewSet):
 		],
 	)
 	def list(self, request, *args, **kwargs):
-		# Re-evaluate every date that has subtasks before returning, so the
-		# response always reflects the current state (no stale resolved/pending).
-		dates = list(
-			Subtask.objects.filter(activity_id__user=request.user)
-			.values_list("target_date", flat=True)
-			.distinct()
+		# Bulk-evaluate all dates in a single aggregation query instead of one
+		# query per date, then upsert/resolve conflicts in bulk.
+		from django.db.models import Sum
+
+		daily_totals = dict(
+			Subtask.objects.filter(
+				activity_id__user=request.user,
+				status__in=["pending", "in_progress"],
+			)
+			.values("target_date")
+			.annotate(total=Sum("estimated_hours"))
+			.values_list("target_date", "total")
 		)
-		for d in dates:
-			_evaluate_day_conflicts(request.user, d)
+
+		max_hours = request.user.max_daily_hours
+
+		overloaded_dates = {d: t for d, t in daily_totals.items() if t > max_hours}
+		ok_dates = [d for d, t in daily_totals.items() if t <= max_hours]
+
+		# Resolve dates that are no longer overloaded in one query
+		if ok_dates:
+			Conflict.objects.filter(
+				user=request.user, affected_date__in=ok_dates, status="pending"
+			).update(status="resolved")
+
+		# Upsert overloaded dates
+		existing = {
+			c.affected_date: c
+			for c in Conflict.objects.filter(
+				user=request.user,
+				affected_date__in=list(overloaded_dates.keys()),
+			)
+		}
+		to_create = []
+		to_update = []
+		for d, total in overloaded_dates.items():
+			if d in existing:
+				conflict = existing[d]
+				conflict.planned_hours = total
+				conflict.max_allowed_hours = max_hours
+				conflict.status = "pending"
+				to_update.append(conflict)
+			else:
+				to_create.append(
+					Conflict(
+						user=request.user,
+						affected_date=d,
+						type="overload",
+						planned_hours=total,
+						max_allowed_hours=max_hours,
+						status="pending",
+					)
+				)
+		if to_update:
+			Conflict.objects.bulk_update(
+				to_update, ["planned_hours", "max_allowed_hours", "status"]
+			)
+		if to_create:
+			Conflict.objects.bulk_create(to_create, ignore_conflicts=False)
+
 		return super().list(request, *args, **kwargs)
 
 	@extend_schema(

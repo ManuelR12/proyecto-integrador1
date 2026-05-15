@@ -72,6 +72,7 @@ export default function ProgressView({ activities, onOpenCreate }: ProgressViewP
 			<div style={{ display: "flex", justifyContent: "center", marginBottom: "3rem" }}>
 				{/* CSS Donut Chart */}
 				<div
+					id="tour-progress-stats"
 					style={{
 						position: "relative",
 						width: "180px",
@@ -179,7 +180,10 @@ export default function ProgressView({ activities, onOpenCreate }: ProgressViewP
 
 				<h3 style={{ fontSize: "16px", fontWeight: 600, margin: "0 0 1rem 0" }}>Mis actividades</h3>
 
-				<div style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+				<div
+					id="tour-progress-list"
+					style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}
+				>
 					{activities.length === 0 && (
 						<div
 							style={{

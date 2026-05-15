@@ -9,6 +9,8 @@ import {
 	Loader2,
 	X,
 } from "lucide-react";
+import { Joyride, STATUS, type Step, type EventData } from "react-joyride";
+import { useTheme } from "@/hooks/useTheme";
 import "./ConflictModal.css";
 
 export interface ConflictInfo {
@@ -43,6 +45,8 @@ interface ConflictModalProps {
 	onClose: () => void;
 	dateLoadMap?: Record<string, number>;
 	maxDailyHours?: number;
+	hasSeenConflictTour?: boolean;
+	onConflictTourComplete?: () => void;
 	onChangeDate?: (payload: {
 		conflict: ConflictModalItem;
 		subtask: ConflictModalSubtask;
@@ -198,15 +202,59 @@ export default function ConflictModal({
 	onClose,
 	dateLoadMap = {},
 	maxDailyHours = 0,
+	hasSeenConflictTour = false,
+	onConflictTourComplete,
 	onChangeDate,
 	onReduceHours,
 }: ConflictModalProps) {
+	const { isDark } = useTheme();
 	const [expandedId, setExpandedId] = useState<number | null>(conflicts[0]?.id ?? null);
 	const [isClosing, setIsClosing] = useState(false);
 	const [resolver, setResolver] = useState<ResolverState | null>(null);
 	const [resolverSaving, setResolverSaving] = useState(false);
 	const [resolverError, setResolverError] = useState<string | null>(null);
 	const closeTimerRef = useRef<number | null>(null);
+	const [conflictTourRun, setConflictTourRun] = useState(() => hasSeenConflictTour === false);
+
+	const conflictTourSteps: Step[] = [
+		{
+			target: '[data-testid="conflict-modal"]',
+			content: (
+				<div>
+					<h3>¡Tienes un conflicto de carga! ⚠️</h3>
+					<p>
+						Esto ocurre cuando programas más horas de las que puedes estudiar en un día. Aquí puedes
+						resolverlos subtarea por subtarea.
+					</p>
+				</div>
+			),
+			placement: "left",
+			skipBeacon: true,
+		},
+		{
+			target: '[data-testid^="conflict-item-toggle-btn-"]',
+			content: 'Haz clic en "Resolver" para ver las subtareas que generan la sobrecarga.',
+			placement: "left",
+		},
+		{
+			target: '[data-testid^="conflict-subtask-change-date-btn-"]',
+			content: "Puedes mover la subtarea a un día más liviano con un solo clic.",
+			placement: "left",
+		},
+		{
+			target: '[data-testid^="conflict-subtask-adjust-hours-btn-"]',
+			content: "O reducir las horas estimadas para que quepan en tu límite diario.",
+			placement: "left",
+		},
+	];
+
+	const handleConflictTourCallback = (data: EventData) => {
+		const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
+		if (finishedStatuses.includes(data.status)) {
+			setConflictTourRun(false);
+			onConflictTourComplete?.();
+		}
+	};
 
 	useEffect(() => {
 		return () => {
@@ -713,6 +761,39 @@ export default function ConflictModal({
 					</div>
 				)}
 			</section>
+			<Joyride
+				onEvent={handleConflictTourCallback}
+				continuous
+				run={conflictTourRun}
+				scrollToFirstStep
+				steps={conflictTourSteps}
+				options={{
+					arrowColor: isDark ? "#1f1c2e" : "#ffffff",
+					backgroundColor: isDark ? "#1f1c2e" : "#ffffff",
+					overlayColor: "transparent",
+					primaryColor: "#ef4444",
+					textColor: isDark ? "#f1f5f9" : "#1e1a33",
+					zIndex: 20000,
+				}}
+				styles={{
+					tooltipContainer: { textAlign: "left" },
+					buttonPrimary: {
+						backgroundColor: "#ef4444",
+						borderRadius: "6px",
+						fontWeight: 600,
+						padding: "8px 16px",
+					},
+					buttonBack: { color: isDark ? "#94a3b8" : "#64748b", marginRight: "10px" },
+					buttonSkip: { color: isDark ? "#94a3b8" : "#64748b" },
+				}}
+				locale={{
+					back: "Anterior",
+					close: "Cerrar",
+					last: "Finalizar",
+					next: "Siguiente",
+					skip: "Omitir",
+				}}
+			/>
 		</div>,
 		document.body,
 	);

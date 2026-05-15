@@ -738,9 +738,7 @@ export default function OrganizationView({
 																		</div>
 																		<div
 																			role="progressbar"
-																			aria-valuenow={Math.round(
-																				(completedSubs / totalSubs) * 100,
-																			)}
+																			aria-valuenow={Math.round((completedSubs / totalSubs) * 100)}
 																			aria-valuemin={0}
 																			aria-valuemax={100}
 																			aria-label={`Progreso de ${act.title}: ${completedSubs} de ${totalSubs} subtareas completadas`}

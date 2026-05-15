@@ -17,4 +17,19 @@ run-front:
 run-back:
 	$(BACKEND_DIR) && uv run manage.py runserver
 
+test-e2e:
+	$(FRONTEND_DIR) && npx playwright test
+
+test-e2e-ui:
+	$(FRONTEND_DIR) && npx playwright test --ui
+
+test-e2e-headed:
+	$(FRONTEND_DIR) && npx playwright test --headed
+
+test-e2e-debug:
+	$(FRONTEND_DIR) && npx playwright test --debug
+
+test-e2e-path:
+	$(FRONTEND_DIR) && npx playwright test --ui "tests/e2e/specs/${test_name}.spec.ts"
+
 run: run-front run-back

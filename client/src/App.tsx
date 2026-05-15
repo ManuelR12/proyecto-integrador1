@@ -70,7 +70,7 @@ function AppRoutes() {
 	const { theme } = useTheme();
 	return (
 		<>
-			<Toaster position="top-right" theme={theme} richColors />
+			<Toaster position="top-center" theme={theme} richColors />
 			<Routes>
 				{/* ── Página de inicio ── */}
 				<Route path="/" element={<Landing />} />

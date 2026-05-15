@@ -729,11 +729,22 @@ export default function OrganizationView({
 																			>
 																				PROGRESO
 																			</span>
-																			<span style={{ fontSize: "10px", color: ov.progCount }}>
+																			<span
+																				data-testid={`org-activity-progress-count-${act.id}`}
+																				style={{ fontSize: "10px", color: ov.progCount }}
+																			>
 																				{completedSubs} de {totalSubs}
 																			</span>
 																		</div>
 																		<div
+																			role="progressbar"
+																			aria-valuenow={Math.round(
+																				(completedSubs / totalSubs) * 100,
+																			)}
+																			aria-valuemin={0}
+																			aria-valuemax={100}
+																			aria-label={`Progreso de ${act.title}: ${completedSubs} de ${totalSubs} subtareas completadas`}
+																			data-testid={`org-activity-progress-${act.id}`}
 																			style={{
 																				height: "5px",
 																				background: ov.progTrack,
@@ -742,6 +753,7 @@ export default function OrganizationView({
 																			}}
 																		>
 																			<div
+																				data-testid={`org-activity-progress-fill-${act.id}`}
 																				style={{
 																					height: "100%",
 																					width: `${totalSubs > 0 ? (completedSubs / totalSubs) * 100 : 0}%`,

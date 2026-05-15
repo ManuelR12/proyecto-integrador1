@@ -202,7 +202,7 @@ export default function ConflictModal({
 	onClose,
 	dateLoadMap = {},
 	maxDailyHours = 0,
-	hasSeenConflictTour = true,
+	hasSeenConflictTour = false,
 	onConflictTourComplete,
 	onChangeDate,
 	onReduceHours,

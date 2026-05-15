@@ -129,7 +129,7 @@ export default function ComingSoon() {
 					<button
 						id="cs-login-btn"
 						className="cs-btn"
-						onClick={() => navigate("/login")}
+						onClick={() => navigate("/auth")}
 						data-testid="coming-soon-login-btn"
 					>
 						<span className="cs-btn__text">Iniciar sesión</span>

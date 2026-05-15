@@ -49,7 +49,7 @@ client.interceptors.response.use(
 				} catch (refreshError) {
 					// Si falla el refresh, cerramos sesión
 					clearAuthStorage();
-					window.location.href = "/login";
+					window.location.href = "/auth";
 					return Promise.reject(refreshError);
 				}
 			}

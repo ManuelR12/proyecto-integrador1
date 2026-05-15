@@ -90,7 +90,7 @@ export default function Landing() {
 						<ArrowRight size={15} aria-hidden="true" />
 					</Link>
 					<Link
-						to="/login"
+						to="/auth"
 						className="landing-btn landing-btn--outline"
 						data-testid="landing-login-link"
 					>

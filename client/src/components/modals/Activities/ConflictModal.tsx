@@ -380,6 +380,23 @@ export default function ConflictModal({
 				: suggestedHours.toFixed(2).replace(/\.00$/, "").replace(/0$/, "")
 			: "";
 
+	const resolverMicrocopy = (() => {
+		if (!resolver) return "";
+		const { name: subtaskName, estimatedHours: estHours } = resolver.subtask;
+
+		if (maxDailyHours > 0 && estHours > maxDailyHours) {
+			if (estHours >= maxDailyHours + maxDailyHours / 2) {
+				return `"${subtaskName}" tiene ${estHours} h estimadas en un solo bloque. No cabe en ningún día disponible con tu límite actual. Considera dividirla en partes más pequeñas.`;
+			} else {
+				return `"${subtaskName}" tiene ${estHours} h estimadas. Es más larga que tu límite diario (${maxDailyHours} h). ¿Quieres dividirla o ajustar el límite solo para ese día?`;
+			}
+		}
+
+		return resolver.mode === "date"
+			? "Tip: moverla a un dia libre suele resolver mas rapido."
+			: "Tip: bajar horas ayuda sin mover tu calendario.";
+	})();
+
 	// En lugar de no renderizar nada, mostraremos un empty state si no hay conflictos.
 	return createPortal(
 		<div
@@ -450,7 +467,7 @@ export default function ConflictModal({
 								Todo está en orden
 							</h3>
 							<p style={{ margin: 0, fontSize: "0.9rem", color: "rgba(255, 255, 255, 0.56)" }}>
-								No tienes conflictos de estado o sobrecarga en tus próximos días.
+								Todo está en orden. No hay sobrecargas ni fechas en riesgo.
 							</p>
 						</div>
 					) : (
@@ -599,9 +616,7 @@ export default function ConflictModal({
 								role="note"
 								data-testid="conflict-resolver-note"
 							>
-								{resolver.mode === "date"
-									? "Tip: moverla a un dia libre suele resolver mas rapido."
-									: "Tip: bajar horas ayuda sin mover tu calendario."}
+								{resolverMicrocopy}
 							</div>
 
 							<label className="cf-resolver-label">

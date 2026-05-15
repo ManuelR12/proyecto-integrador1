@@ -24,6 +24,10 @@ class Subject(models.Model):
 		verbose_name = "Subject"
 		verbose_name_plural = "Subjects"
 		ordering = ["-creation_date"]
+		indexes = [
+			models.Index(fields=["-creation_date"]),
+			models.Index(fields=["name"]),
+		]
 
 	def __str__(self):
 		return self.name
@@ -67,6 +71,12 @@ class Activity(models.Model):
 	created_at = models.DateTimeField(auto_now_add=True)
 	updated_at = models.DateTimeField(auto_now=True)
 
+	class Meta:
+		indexes = [
+			models.Index(fields=["user", "due_date"]),
+			models.Index(fields=["user", "status"]),
+		]
+
 	def __str__(self):
 		return self.title
 
@@ -80,6 +90,15 @@ class Subtask(models.Model):
 	ordering = models.PositiveIntegerField()
 	created_at = models.DateTimeField(auto_now_add=True)
 	updated_at = models.DateTimeField(auto_now=True)
+
+	class Meta:
+		indexes = [
+			models.Index(fields=["target_date", "status"]),
+			models.Index(fields=["activity_id", "status"]),
+			# Covers the bulk conflict-evaluation aggregation:
+			# WHERE activity_id__user=X AND status IN (...) GROUP BY target_date
+			models.Index(fields=["activity_id", "target_date", "status"]),
+		]
 
 	def __str__(self):
 		return self.name
@@ -108,6 +127,11 @@ class Conflict(models.Model):
 	status = models.CharField(max_length=50)
 	detected_at = models.DateTimeField(auto_now_add=True)
 
+	class Meta:
+		indexes = [
+			models.Index(fields=["user", "affected_date", "status"]),
+		]
+
 	def __str__(self):
 		return f"Conflict {self.id} ({self.type})"
 
@@ -120,3 +144,17 @@ class ConflictResolution(models.Model):
 
 	def __str__(self):
 		return f"Resolution for conflict {self.conflict.id}"
+
+
+class UserOnboarding(models.Model):
+	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="onboarding")
+	has_seen_tour = models.BooleanField(default=False)
+	has_seen_org_tour = models.BooleanField(default=False)
+	has_seen_progress_tour = models.BooleanField(default=False)
+	has_seen_conflict_tour = models.BooleanField(default=False)
+
+	class Meta:
+		db_table = "onboarding_user"
+
+	def __str__(self):
+		return f"Onboarding for {self.user.username}"

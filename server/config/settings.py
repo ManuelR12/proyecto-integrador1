@@ -4,6 +4,7 @@ Django settings for config project.
 
 import os
 import sys
+from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
@@ -96,6 +97,11 @@ REST_FRAMEWORK = {
 		"rest_framework_simplejwt.authentication.JWTAuthentication",
 	],
 	"EXCEPTION_HANDLER": "planner.exceptions.custom_exception_handler",
+}
+
+SIMPLE_JWT = {
+	"ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
+	"REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
 
 SPECTACULAR_SETTINGS = {

@@ -1549,7 +1549,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 						{/* ===== CREATE VIEW ===== */}
 						{activeNav === "create" && (
 							<CreateActivityView
-								knownSubjects={knownSubjects}
+								knownSubjects={subjects}
 								dateLoadMap={dateLoadMap}
 								conflictDates={conflictDates}
 								maxDailyHours={capacityTotal}

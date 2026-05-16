@@ -976,7 +976,10 @@ class SubjectViewSet(viewsets.ModelViewSet):
 	permission_classes = [IsAuthenticated]
 
 	def get_queryset(self):
-		return Subject.objects.all().order_by("-creation_date")
+		return Subject.objects.filter(user=self.request.user).order_by("-creation_date")
+
+	def perform_create(self, serializer):
+		serializer.save(user=self.request.user)
 
 	@extend_schema(
 		summary="List subjects",

@@ -80,11 +80,12 @@ function upsertSubtaskAcrossKanban(
 	nextSubtask: Subtask,
 	fallbackGroup: KanbanGroup,
 ): { nextState: KanbanState; nextGroup: KanbanGroup } {
-	const targetGroup = nextSubtask.status === "postponed"
-		? "postponed"
-		: nextSubtask.target_date
-			? getKanbanGroupForDate(nextSubtask.target_date)
-			: fallbackGroup;
+	const targetGroup =
+		nextSubtask.status === "postponed"
+			? "postponed"
+			: nextSubtask.target_date
+				? getKanbanGroupForDate(nextSubtask.target_date)
+				: fallbackGroup;
 
 	const nextState: KanbanState = {
 		overdue: state.overdue.filter((item) => item.id !== subtaskId),
@@ -119,7 +120,9 @@ export default function TodayKanban({
 	onConflict?: (info: ConflictInfo) => void;
 	onSubtaskMutated?: (
 		subtaskId?: number,
-		patch?: Partial<Pick<Subtask, "estimated_hours" | "target_date" | "status" | "postponement_note">>,
+		patch?: Partial<
+			Pick<Subtask, "estimated_hours" | "target_date" | "status" | "postponement_note">
+		>,
 		previousStatus?: string,
 	) => void;
 	searchQuery?: string;
@@ -328,11 +331,13 @@ export default function TodayKanban({
 				return nextState;
 			});
 			setSelectedSubtask((prev) =>
-				prev?.subtask.id === subtask.id
-					? { group: nextGroup, subtask: merged }
-					: prev,
+				prev?.subtask.id === subtask.id ? { group: nextGroup, subtask: merged } : prev,
 			);
-			onSubtaskMutated?.(subtask.id, { status: nextStatus, postponement_note: postponementNoteDraft }, subtask.status);
+			onSubtaskMutated?.(
+				subtask.id,
+				{ status: nextStatus, postponement_note: postponementNoteDraft },
+				subtask.status,
+			);
 			toast.success(nextLabels[nextStatus] ?? nextStatus);
 		} catch {
 			toast.error("No se pudo actualizar la tarea.");
@@ -344,7 +349,9 @@ export default function TodayKanban({
 	async function handleEdit(
 		subtask: Subtask,
 		group: KanbanGroup,
-		fields: Partial<Pick<Subtask, "name" | "estimated_hours" | "target_date" | "status" | "postponement_note">>,
+		fields: Partial<
+			Pick<Subtask, "name" | "estimated_hours" | "target_date" | "status" | "postponement_note">
+		>,
 	) {
 		if (
 			subtask.status === "postponed" &&
@@ -644,7 +651,7 @@ export default function TodayKanban({
 							);
 						}}
 						aria-label="Filtrar por estado"
-					data-testid="today-status-filter-btn"
+						data-testid="today-status-filter-btn"
 						style={{
 							height: "34px",
 							borderRadius: "8px",
@@ -677,7 +684,7 @@ export default function TodayKanban({
 							);
 						}}
 						aria-label="Filtrar por materia"
-					data-testid="today-course-filter-btn"
+						data-testid="today-course-filter-btn"
 						style={{
 							height: "34px",
 							borderRadius: "8px",
@@ -707,7 +714,7 @@ export default function TodayKanban({
 							setToolbarSelect(null);
 						}}
 						aria-label="Limpiar todos los filtros"
-					data-testid="today-clear-filters-btn"
+						data-testid="today-clear-filters-btn"
 						style={{
 							height: "34px",
 							borderRadius: "8px",
@@ -1565,13 +1572,18 @@ export default function TodayKanban({
 													alignItems: "center",
 													fontWeight: 600,
 													fontSize: "12px",
-													transition: "all 0.2s"
+													transition: "all 0.2s",
 												}}
 												disabled={loadingMore}
-												onClick={() => { void onLoadMore(); }}
+												onClick={() => {
+													void onLoadMore();
+												}}
 											>
 												{loadingMore ? (
-													<><Loader2 size={14} className="spinner" style={{ marginRight: 6 }}/> Cargando...</>
+													<>
+														<Loader2 size={14} className="spinner" style={{ marginRight: 6 }} />{" "}
+														Cargando...
+													</>
 												) : (
 													"Cargar más de la columna"
 												)}

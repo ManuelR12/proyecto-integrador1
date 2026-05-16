@@ -487,7 +487,7 @@ export default function OrganizationView({
 													gap: "6px",
 												}}
 												onClick={() => onOpenCreate(subject)}
-											aria-label={`Agregar actividad a ${subject}`}
+												aria-label={`Agregar actividad a ${subject}`}
 												data-testid={`org-subject-add-activity-empty-btn-${subjectToken}`}
 												onMouseOver={(e) => {
 													e.currentTarget.style.borderColor = "#94a3b8";
@@ -734,12 +734,18 @@ export default function OrganizationView({
 																			data-testid={`org-activity-progress-count-${act.id}`}
 																			style={{ fontSize: "10px", color: ov.progCount }}
 																		>
-																			{totalSubs > 0 ? `${completedSubs} de ${totalSubs}` : "Sin subtareas"}
+																			{totalSubs > 0
+																				? `${completedSubs} de ${totalSubs}`
+																				: "Sin subtareas"}
 																		</span>
 																	</div>
 																	<div
 																		role="progressbar"
-																		aria-valuenow={totalSubs > 0 ? Math.round((completedSubs / totalSubs) * 100) : 0}
+																		aria-valuenow={
+																			totalSubs > 0
+																				? Math.round((completedSubs / totalSubs) * 100)
+																				: 0
+																		}
 																		aria-valuemin={0}
 																		aria-valuemax={100}
 																		aria-label={`Progreso de ${act.title}: ${completedSubs} de ${totalSubs} subtareas completadas`}
@@ -1103,19 +1109,25 @@ export default function OrganizationView({
 						</div>
 					);
 				})}
-				
+
 				{/* LOAD MORE EXTENSION */}
 				{hasMore && (
 					<div style={{ textAlign: "center", marginTop: "1rem" }}>
 						<button
 							className="btn-add"
-							style={{ margin: "0 auto", display: "inline-flex", background: loadingMore ? "transparent" : "" }}
+							style={{
+								margin: "0 auto",
+								display: "inline-flex",
+								background: loadingMore ? "transparent" : "",
+							}}
 							disabled={loadingMore}
-							onClick={() => { void onLoadMore(); }}
+							onClick={() => {
+								void onLoadMore();
+							}}
 						>
 							{loadingMore ? (
 								<>
-									<Loader2 size={15} className="spinner" style={{marginRight: 6}} /> Cargando...
+									<Loader2 size={15} className="spinner" style={{ marginRight: 6 }} /> Cargando...
 								</>
 							) : (
 								<>

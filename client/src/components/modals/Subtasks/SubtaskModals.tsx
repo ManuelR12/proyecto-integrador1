@@ -223,7 +223,9 @@ export function EditSubtaskModal({
 					{/* Body */}
 					<div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
 						<div>
-							<label htmlFor="edit-subtask-name" style={labelStyle}>Nombre</label>
+							<label htmlFor="edit-subtask-name" style={labelStyle}>
+								Nombre
+							</label>
 							<input
 								id="edit-subtask-name"
 								style={inputStyle}
@@ -240,7 +242,9 @@ export function EditSubtaskModal({
 						</div>
 						<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
 							<div>
-								<label htmlFor="edit-subtask-hours" style={labelStyle}>Horas est.</label>
+								<label htmlFor="edit-subtask-hours" style={labelStyle}>
+									Horas est.
+								</label>
 								<input
 									id="edit-subtask-hours"
 									style={inputStyle}
@@ -259,7 +263,9 @@ export function EditSubtaskModal({
 								/>
 							</div>
 							<div>
-								<label htmlFor="edit-subtask-date" style={labelStyle}>Fecha límite</label>
+								<label htmlFor="edit-subtask-date" style={labelStyle}>
+									Fecha límite
+								</label>
 								<input
 									id="edit-subtask-date"
 									style={inputStyle}
@@ -354,7 +360,9 @@ export function EditSubtaskModal({
 						</div>
 						{initialStatus === "postponed" && setPostponementNote && (
 							<div>
-								<label htmlFor="edit-subtask-postpone-note" style={labelStyle}>Motivo de la posposición (opcional)</label>
+								<label htmlFor="edit-subtask-postpone-note" style={labelStyle}>
+									Motivo de la posposición (opcional)
+								</label>
 								<textarea
 									id="edit-subtask-postpone-note"
 									style={{
@@ -1140,7 +1148,9 @@ export function CreateSubtaskModal({
 							})()}
 						{/* Name */}
 						<div>
-							<label htmlFor="create-subtask-name" style={labelStyle}>Nombre de la tarea</label>
+							<label htmlFor="create-subtask-name" style={labelStyle}>
+								Nombre de la tarea
+							</label>
 							<input
 								id="create-subtask-name"
 								style={inputStyle}
@@ -1159,7 +1169,9 @@ export function CreateSubtaskModal({
 						{/* Date + Hours */}
 						<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
 							<div>
-								<label htmlFor="create-subtask-date" style={labelStyle}>Fecha límite</label>
+								<label htmlFor="create-subtask-date" style={labelStyle}>
+									Fecha límite
+								</label>
 								<input
 									id="create-subtask-date"
 									style={inputStyle}
@@ -1182,7 +1194,9 @@ export function CreateSubtaskModal({
 								/>
 							</div>
 							<div>
-								<label htmlFor="create-subtask-hours" style={labelStyle}>Tiempo estimado (h)</label>
+								<label htmlFor="create-subtask-hours" style={labelStyle}>
+									Tiempo estimado (h)
+								</label>
 								<input
 									id="create-subtask-hours"
 									style={inputStyle}

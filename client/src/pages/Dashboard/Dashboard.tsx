@@ -490,7 +490,12 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 	}
 
 	const applyTodayDataPatchLocally = useCallback(
-		(subtaskId: number, patch: Partial<Pick<Subtask, "estimated_hours" | "target_date" | "status" | "postponement_note">>) => {
+		(
+			subtaskId: number,
+			patch: Partial<
+				Pick<Subtask, "estimated_hours" | "target_date" | "status" | "postponement_note">
+			>,
+		) => {
 			setTodayData((prev) => {
 				if (!prev) return prev;
 
@@ -524,11 +529,12 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
 				const nextSubtask: Subtask = { ...baseSubtask, ...patch };
 				const fallbackGroup = currentGroup ?? "upcoming";
-				const targetGroup = nextSubtask.status === "postponed"
-					? "postponed"
-					: nextSubtask.target_date
-						? getKanbanGroupForDate(nextSubtask.target_date, getLocalDateKey())
-						: fallbackGroup;
+				const targetGroup =
+					nextSubtask.status === "postponed"
+						? "postponed"
+						: nextSubtask.target_date
+							? getKanbanGroupForDate(nextSubtask.target_date, getLocalDateKey())
+							: fallbackGroup;
 
 				const nextState: KanbanState = {
 					overdue: prev.overdue.filter((subtask) => subtask.id !== subtaskId),
@@ -623,7 +629,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 					setUser(me ?? null);
 					const acts = "results" in actsRaw ? actsRaw.results : actsRaw;
 					const todayView = "results" in todayRaw ? todayRaw.results : todayRaw;
-					
+
 					setActivities(Array.isArray(acts) ? acts : []);
 					setOrgHasMore("next" in actsRaw ? actsRaw.next !== null : false);
 					setOrgPage(1);
@@ -636,7 +642,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 					});
 					setTodayHasMore("next" in todayRaw ? todayRaw.next !== null : false);
 					setTodayPage(1);
-					
+
 					setApiSubjects(Array.isArray(subs) ? subs : []);
 					void refreshConflicts();
 				}
@@ -687,12 +693,12 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 			const nextPage = todayPage + 1;
 			const todayRaw = await fetchTodayView({ page: nextPage, limit: 10 });
 			const todayView = "results" in todayRaw ? todayRaw.results : todayRaw;
-			
+
 			setTodayData((prev) => {
 				if (!prev) return prev;
 				const deduplicate = (oldItems: Subtask[], newItems: Subtask[]) => {
-					const existingIds = new Set(oldItems.map(s => s.id));
-					return [...oldItems, ...newItems.filter(s => !existingIds.has(s.id))];
+					const existingIds = new Set(oldItems.map((s) => s.id));
+					return [...oldItems, ...newItems.filter((s) => !existingIds.has(s.id))];
 				};
 				return {
 					overdue: deduplicate(prev.overdue, todayView.overdue),

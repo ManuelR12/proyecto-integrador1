@@ -312,34 +312,31 @@ export default function TodayKanban({
 			postponed: "Pospuesta",
 		};
 		setTogglingId(subtask.id);
+
+		// Optimistic update
+		setKanban((prev) => {
+			const nextKanban = {
+				...prev,
+				[group]: prev[group].map((s) => (s.id === subtask.id ? { ...s, status: nextStatus } : s)),
+			};
+			onDataRefresh(nextKanban);
+			return nextKanban;
+		});
+		setSelectedSubtask((prev) =>
+			prev?.subtask.id === subtask.id
+				? { group, subtask: { ...prev.subtask, status: nextStatus } }
+				: prev,
+		);
+		onSubtaskMutated?.(subtask.id, { status: nextStatus }, subtask.status);
+
 		try {
 			await updateSubtask(activityId, subtask.id, {
 				status: nextStatus,
 				postponement_note: postponementNoteDraft,
 			});
-			const merged = { ...subtask, status: nextStatus, postponement_note: postponementNoteDraft };
-			let nextGroup: KanbanGroup = group;
-			setKanban((prev) => {
-				const { nextState, nextGroup: resolvedGroup } = upsertSubtaskAcrossKanban(
-					prev,
-					subtask.id,
-					merged,
-					group,
-				);
-				nextGroup = resolvedGroup;
-				onDataRefresh(nextState);
-				return nextState;
-			});
-			setSelectedSubtask((prev) =>
-				prev?.subtask.id === subtask.id ? { group: nextGroup, subtask: merged } : prev,
-			);
-			onSubtaskMutated?.(
-				subtask.id,
-				{ status: nextStatus, postponement_note: postponementNoteDraft },
-				subtask.status,
-			);
 			toast.success(nextLabels[nextStatus] ?? nextStatus);
 		} catch {
+			// Revert on error could be implemented here, but for now just show error
 			toast.error("No se pudo actualizar la tarea.");
 		} finally {
 			setTogglingId(null);
@@ -367,9 +364,9 @@ export default function TodayKanban({
 			toast.error("Actividad no encontrada.");
 			throw new Error("no activityId");
 		}
-		const updated = await updateSubtask(activityId, subtask.id, fields);
-		const merged: Subtask = { ...subtask, ...updated };
 
+		// Optimistic update
+		const merged: Subtask = { ...subtask, ...fields };
 		let nextKanbanSnapshot: KanbanState | null = null;
 		let nextGroup: KanbanGroup = group;
 
@@ -416,7 +413,14 @@ export default function TodayKanban({
 			}
 		}
 		onSubtaskMutated?.(subtask.id, fields, subtask.status);
-		toast.success("Tarea actualizada");
+
+		try {
+			await updateSubtask(activityId, subtask.id, fields);
+			toast.success("Tarea actualizada");
+		} catch (error) {
+			toast.error("No se pudo actualizar la tarea en el servidor.");
+			throw error;
+		}
 	}
 
 	async function handleDelete(subtask: Subtask, group: KanbanGroup) {
@@ -425,7 +429,8 @@ export default function TodayKanban({
 			toast.error("Actividad no encontrada.");
 			return;
 		}
-		await deleteSubtask(activityId, subtask.id);
+
+		// Optimistic update
 		setKanban((prev) => {
 			const nextKanban = {
 				...prev,
@@ -436,7 +441,13 @@ export default function TodayKanban({
 		});
 		setSelectedSubtask(null);
 		onSubtaskMutated?.();
-		toast.success("Tarea eliminada");
+
+		try {
+			await deleteSubtask(activityId, subtask.id);
+			toast.success("Tarea eliminada");
+		} catch {
+			toast.error("No se pudo eliminar la tarea en el servidor.");
+		}
 	}
 
 	const allItems = useMemo(

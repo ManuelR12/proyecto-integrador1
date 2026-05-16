@@ -16,7 +16,7 @@ import {
 	ClipboardList,
 	Pencil,
 } from "lucide-react";
-import { fetchSubtasks, type Activity, type Subtask } from "@/api/dashboard";
+import { fetchSubtasks, updateSubtask, type Activity, type Subtask } from "@/api/dashboard";
 import { toast } from "sonner";
 import "@/pages/Dashboard/Dashboard.css";
 import { formatDate, daysUntil } from "@/pages/Dashboard/utils/dashboardUtils";
@@ -99,6 +99,13 @@ export default function OrganizationView({
 		Record<number, { loading: boolean; items: Subtask[] }>
 	>({});
 	const [subtaskModalActivity, setSubtaskModalActivity] = useState<Activity | null>(null);
+	const [togglingSubtaskId, setTogglingSubtaskId] = useState<number | null>(null);
+	const [statusDropdown, setStatusDropdown] = useState<{
+		subtaskId: number;
+		activityId: number;
+		top: number;
+		left: number;
+	} | null>(null);
 
 	const grouped = useMemo(() => {
 		const map: Record<string, Activity[]> = {};
@@ -164,6 +171,56 @@ export default function OrganizationView({
 			}));
 			return [];
 		}
+	}
+
+	async function handleSubtaskStatusChange(
+		activityId: number,
+		sub: Subtask,
+		nextStatus: Subtask["status"],
+	) {
+		if (togglingSubtaskId === sub.id) return;
+		const prevStatus = sub.status;
+		setTogglingSubtaskId(sub.id);
+		// Optimistic local update
+		setSubtaskStateByActivity((prev) => ({
+			...prev,
+			[activityId]: {
+				...prev[activityId],
+				items: prev[activityId]?.items.map((s) =>
+					s.id === sub.id ? { ...s, status: nextStatus } : s,
+				) ?? [],
+			},
+		}));
+		try {
+			await updateSubtask(activityId, sub.id, { status: nextStatus });
+			const statusLabels: Record<string, string> = {
+				pending: "Pendiente",
+				in_progress: "En progreso",
+				completed: "Completada",
+			};
+			toast.success(statusLabels[nextStatus] ?? nextStatus);
+			onSubtaskMutated?.(sub.id, { status: nextStatus }, prevStatus);
+		} catch {
+			// Rollback on failure
+			setSubtaskStateByActivity((prev) => ({
+				...prev,
+				[activityId]: {
+					...prev[activityId],
+					items: prev[activityId]?.items.map((s) =>
+						s.id === sub.id ? { ...s, status: prevStatus } : s,
+					) ?? [],
+				},
+			}));
+			toast.error("No se pudo actualizar el estado.");
+		} finally {
+			setTogglingSubtaskId(null);
+		}
+	}
+
+	function cycleStatus(current: Subtask["status"]): Subtask["status"] {
+		if (current === "pending") return "in_progress";
+		if (current === "in_progress") return "completed";
+		return "pending";
 	}
 
 	function toggleActivity(activityId: number) {
@@ -956,15 +1013,36 @@ export default function OrganizationView({
 																						}}
 																					>
 																						{sub.status === "completed" ? (
-																							<CheckCircle2
-																								color="#34d399"
-																								style={{ flexShrink: 0 }}
-																							/>
+																							<button
+																								data-testid={`org-subtask-toggle-${sub.id}`}
+																								aria-label="Marcar como pendiente"
+																								title="Ciclar estado"
+																								style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", flexShrink: 0 }}
+																								onClick={() => handleSubtaskStatusChange(act.id, sub, cycleStatus(sub.status))}
+																							>
+																								<CheckCircle2
+																									color="#34d399"
+																									style={{ flexShrink: 0 }}
+																								/>
+																							</button>
 																						) : (
-																							<Circle
-																								color={ov.subCircle}
-																								style={{ flexShrink: 0 }}
-																							/>
+																							<button
+																								data-testid={`org-subtask-toggle-${sub.id}`}
+																								aria-label="Ciclar estado"
+																								title="Ciclar estado"
+																								style={{ background: "none", border: "none", padding: 0, cursor: togglingSubtaskId === sub.id ? "wait" : "pointer", display: "flex", flexShrink: 0, opacity: togglingSubtaskId === sub.id ? 0.5 : 1 }}
+																								onClick={() => handleSubtaskStatusChange(act.id, sub, cycleStatus(sub.status))}
+																							>
+																								{togglingSubtaskId === sub.id ? (
+																									<Loader2 size={16} className="spinner" style={{ flexShrink: 0, color: ov.subCircle }} />
+																								) : (
+																									<Circle
+																										size={16}
+																										color={sub.status === "in_progress" ? "#60a5fa" : ov.subCircle}
+																										style={{ flexShrink: 0 }}
+																									/>
+																								)}
+																							</button>
 																						)}
 																						<span
 																							style={{
@@ -1012,7 +1090,8 @@ export default function OrganizationView({
 																								{sub.estimated_hours}h
 																							</span>
 																						)}
-																						<span
+																						<button
+																							data-testid={`org-subtask-status-btn-${sub.id}`}
 																							style={{
 																								fontSize: "10px",
 																								padding: "1px 7px",
@@ -1021,10 +1100,21 @@ export default function OrganizationView({
 																								color: sCols[sub.status] ?? "#64748b",
 																								fontWeight: 600,
 																								whiteSpace: "nowrap",
+																								border: "none",
+																								cursor: "pointer",
+																								transition: "opacity 0.15s",
+																							}}
+																							onClick={(e) => {
+																								const rect = e.currentTarget.getBoundingClientRect();
+																								setStatusDropdown((prev) =>
+																									prev?.subtaskId === sub.id
+																										? null
+																										: { subtaskId: sub.id, activityId: act.id, top: rect.bottom + 4, left: rect.left },
+																								);
 																							}}
 																						>
 																							{sLbls[sub.status] ?? sub.status}
-																						</span>
+																						</button>
 																					</div>
 																				);
 																			})}
@@ -1396,6 +1486,92 @@ export default function OrganizationView({
 					</div>,
 					document.body,
 				)}
-		</>
+		{/* ─── Subtask status dropdown portal ─── */}
+		{statusDropdown &&
+			createPortal(
+				<>
+					<div
+						style={{ position: "fixed", inset: 0, zIndex: 9998 }}
+						onClick={() => setStatusDropdown(null)}
+					/>
+					<div
+						data-testid="org-subtask-status-dropdown"
+						style={{
+							position: "fixed",
+							top: statusDropdown.top,
+							left: statusDropdown.left,
+							zIndex: 9999,
+							background: isDark ? "#1e293b" : "rgba(255,255,255,0.97)",
+							border: `1px solid ${isDark ? "#334155" : "rgba(124,92,255,0.22)"}`,
+							borderRadius: "10px",
+							overflow: "hidden",
+							boxShadow: isDark ? "0 8px 24px rgba(0,0,0,0.5)" : "0 8px 24px rgba(0,0,0,0.12)",
+							animation: "dropdownOpen 0.15s cubic-bezier(0.16,1,0.3,1)",
+							minWidth: "148px",
+						}}
+					>
+						{(
+							[
+								["pending", "Pendiente", "#fbbf24"],
+								["in_progress", "En progreso", "#60a5fa"],
+								["completed", "Completada", "#34d399"],
+							] as const
+						).map(([value, label, color]) => {
+							const actSubtask = subtaskStateByActivity[statusDropdown.activityId]?.items.find(
+								(s) => s.id === statusDropdown.subtaskId,
+							);
+							const isCurrent = actSubtask?.status === value;
+							return (
+								<button
+									key={value}
+									data-testid={`org-subtask-status-option-${statusDropdown.subtaskId}-${value}`}
+									onClick={() => {
+										if (actSubtask && !isCurrent) {
+											void handleSubtaskStatusChange(
+												statusDropdown.activityId,
+												actSubtask,
+												value,
+											);
+										}
+										setStatusDropdown(null);
+									}}
+									style={{
+										width: "100%",
+										padding: "9px 12px",
+										border: "none",
+										textAlign: "left",
+										fontSize: "12px",
+										fontFamily: "inherit",
+										cursor: isCurrent ? "default" : "pointer",
+										background: isCurrent
+											? isDark
+												? "rgba(124,92,255,0.18)"
+												: "rgba(124,92,255,0.1)"
+											: "transparent",
+										color: isCurrent ? color : isDark ? "#94a3b8" : "#7a728f",
+										fontWeight: isCurrent ? 700 : 400,
+										display: "flex",
+										alignItems: "center",
+										gap: "8px",
+									}}
+								>
+									<span
+										style={{
+											width: 8,
+											height: 8,
+											borderRadius: "50%",
+											background: color,
+											flexShrink: 0,
+										}}
+									/>
+									{label}
+								</button>
+							);
+						})}
+					</div>
+				</>,
+				document.body,
+			)}
+	</>
 	);
 }

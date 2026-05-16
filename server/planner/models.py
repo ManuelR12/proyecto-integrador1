@@ -15,6 +15,7 @@ class Subject(models.Model):
 	"""
 
 	# Django automatically creates an 'id' primary key field.
+	user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="subjects")
 	name = models.CharField(max_length=100, help_text="The name of the subject")
 	creation_date = models.DateTimeField(
 		auto_now_add=True, help_text="Timestamp when the subject was created"
@@ -31,26 +32,6 @@ class Subject(models.Model):
 
 	def __str__(self):
 		return self.name
-
-
-class UserSubject(models.Model):
-	"""
-	Intermediate table mapping Users to Subjects (Many-to-Many).
-	Requested by the Coordinator to properly reference subjects per user.
-	"""
-
-	user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_subjects")
-	subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="user_subjects")
-	assigned_at = models.DateTimeField(auto_now_add=True)
-
-	class Meta:
-		# A user cannot have the same subject assigned twice
-		unique_together = ("user", "subject")
-		verbose_name = "User Subject"
-		verbose_name_plural = "User Subjects"
-
-	def __str__(self):
-		return f"{self.user.username} - {self.subject.name}"
 
 
 class Activity(models.Model):

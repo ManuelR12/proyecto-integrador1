@@ -2,6 +2,33 @@
    Dashboard — Luma Palette
    ============================ */
 
+/* ===== A11y: Focus Visible (FE-26) ===== */
+.dashboard button:focus-visible,
+.dashboard input:focus-visible,
+.dashboard select:focus-visible,
+.dashboard textarea:focus-visible,
+.dashboard a:focus-visible,
+.dashboard [role="button"]:focus-visible,
+.dashboard [role="dialog"]:focus-visible,
+.dashboard [tabindex]:focus-visible {
+	outline: 2px solid #a78bfa;
+	outline-offset: 2px;
+	box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.25);
+	border-radius: 4px;
+}
+
+[data-theme="light"] .dashboard button:focus-visible,
+[data-theme="light"] .dashboard input:focus-visible,
+[data-theme="light"] .dashboard select:focus-visible,
+[data-theme="light"] .dashboard textarea:focus-visible,
+[data-theme="light"] .dashboard a:focus-visible,
+[data-theme="light"] .dashboard [role="button"]:focus-visible,
+[data-theme="light"] .dashboard [role="dialog"]:focus-visible,
+[data-theme="light"] .dashboard [tabindex]:focus-visible {
+	outline-color: #7c3aed;
+	box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.18);
+}
+
 /* ---------- CSS Variables ---------- */
 .dashboard {
 	--bg-primary: #1e1b30;

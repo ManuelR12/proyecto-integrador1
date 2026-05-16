@@ -573,6 +573,7 @@ export function SubtaskDetailPanel({
 								value={postponeNote}
 								onChange={(e) => setPostponeNote(e.target.value)}
 								placeholder="Motivo de la posposición (opcional)..."
+								aria-label="Motivo de la posposición"
 								className="input-textarea"
 								autoFocus
 								style={{

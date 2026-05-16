@@ -290,6 +290,7 @@ export default function OrganizationView({
 				<button
 					className="btn-add"
 					style={{ margin: "0 auto", display: "inline-flex" }}
+					aria-label="Agregar nueva materia"
 					data-testid="org-empty-add-subject-btn"
 					onClick={() => {
 						const name = window.prompt("Nombre de la nueva materia:");
@@ -404,6 +405,7 @@ export default function OrganizationView({
 								>
 									<button
 										title="Renombrar materia"
+										aria-label={`Renombrar materia ${subject}`}
 										onClick={() => setOrgSubjectModal({ mode: "rename", current: subject })}
 										data-testid={`org-subject-rename-btn-${subjectToken}`}
 										style={{
@@ -423,6 +425,7 @@ export default function OrganizationView({
 									</button>
 									<button
 										title="Eliminar materia"
+										aria-label={`Eliminar materia ${subject}`}
 										onClick={() => setOrgConfirmDelete(subject)}
 										data-testid={`org-subject-delete-btn-${subjectToken}`}
 										style={{
@@ -484,6 +487,7 @@ export default function OrganizationView({
 													gap: "6px",
 												}}
 												onClick={() => onOpenCreate(subject)}
+											aria-label={`Agregar actividad a ${subject}`}
 												data-testid={`org-subject-add-activity-empty-btn-${subjectToken}`}
 												onMouseOver={(e) => {
 													e.currentTarget.style.borderColor = "#94a3b8";
@@ -787,6 +791,7 @@ export default function OrganizationView({
 																		whiteSpace: "nowrap",
 																	}}
 																	onClick={() => toggleActivity(act.id)}
+																	aria-label={`Ver subtareas de ${act.title}`}
 																	data-testid={`org-activity-subtasks-toggle-${act.id}`}
 																	onMouseOver={(e) => {
 																		if (!isActOpen) {
@@ -827,6 +832,7 @@ export default function OrganizationView({
 																		transition: "color 0.15s",
 																	}}
 																	onClick={() => navigate(`/actividad/${act.id}/edit`)}
+																	aria-label={`Editar actividad ${act.title}`}
 																	data-testid={`org-activity-edit-btn-${act.id}`}
 																	onMouseOver={(e) => (e.currentTarget.style.color = "#c084fc")}
 																	onMouseOut={(e) => (e.currentTarget.style.color = "#334155")}
@@ -846,6 +852,7 @@ export default function OrganizationView({
 																		transition: "color 0.15s",
 																	}}
 																	onClick={() => onDelete(act.id, act.title)}
+																	aria-label={`Eliminar actividad ${act.title}`}
 																	data-testid={`org-activity-delete-btn-${act.id}`}
 																	onMouseOver={(e) => (e.currentTarget.style.color = "#f87171")}
 																	onMouseOut={(e) => (e.currentTarget.style.color = "#334155")}

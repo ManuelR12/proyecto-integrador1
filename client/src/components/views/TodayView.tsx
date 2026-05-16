@@ -590,6 +590,7 @@ export default function TodayKanban({
 				{/* Nueva subtarea CTA */}
 				<button
 					onClick={() => setCreateModalOpen(true)}
+					aria-label="Crear nueva subtarea"
 					data-testid="today-new-subtask-btn"
 					style={{
 						display: "flex",
@@ -642,7 +643,8 @@ export default function TodayKanban({
 									: { type: "status", top: rect.bottom + 6, left: rect.left, width: rect.width },
 							);
 						}}
-						data-testid="today-status-filter-btn"
+						aria-label="Filtrar por estado"
+					data-testid="today-status-filter-btn"
 						style={{
 							height: "34px",
 							borderRadius: "8px",
@@ -674,7 +676,8 @@ export default function TodayKanban({
 									: { type: "course", top: rect.bottom + 6, left: rect.left, width: rect.width },
 							);
 						}}
-						data-testid="today-course-filter-btn"
+						aria-label="Filtrar por materia"
+					data-testid="today-course-filter-btn"
 						style={{
 							height: "34px",
 							borderRadius: "8px",
@@ -703,7 +706,8 @@ export default function TodayKanban({
 							setCourseFilter("all");
 							setToolbarSelect(null);
 						}}
-						data-testid="today-clear-filters-btn"
+						aria-label="Limpiar todos los filtros"
+					data-testid="today-clear-filters-btn"
 						style={{
 							height: "34px",
 							borderRadius: "8px",
@@ -846,6 +850,7 @@ export default function TodayKanban({
 						<button
 							key={group}
 							onClick={() => setActiveTab(group)}
+							aria-label={`Ver columna ${label}`}
 							data-testid={`today-tab-${group}`}
 							style={{
 								position: "relative",
@@ -1191,6 +1196,7 @@ export default function TodayKanban({
 																			left: rect.left,
 																		});
 																	}}
+																	aria-label={`Cambiar estado: ${statusLabel}`}
 																	data-testid={`today-subtask-status-btn-${subtask.id}`}
 																	style={{
 																		display: "inline-flex",
@@ -1282,6 +1288,7 @@ export default function TodayKanban({
 																									);
 																								}
 																							}}
+																							aria-label={`Cambiar estado a ${label}`}
 																							data-testid={`today-subtask-status-option-${subtask.id}-${val}`}
 																							style={{
 																								display: "flex",
@@ -1365,6 +1372,7 @@ export default function TodayKanban({
 																							}}
 																						/>
 																						<button
+																							aria-label="Confirmar posposición"
 																							onClick={() => {
 																								setOpenSelect(null);
 																								void handleToggle(

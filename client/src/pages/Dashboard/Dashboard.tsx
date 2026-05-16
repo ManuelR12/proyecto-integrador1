@@ -117,6 +117,10 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
 	const [user, setUser] = useState<User | null>(null);
 	const [activities, setActivities] = useState<Activity[]>([]);
+	const [orgHasMore, setOrgHasMore] = useState(false);
+	const [orgPage, setOrgPage] = useState(1);
+	const [orgLoadingMore, setOrgLoadingMore] = useState(false);
+
 	const [loading, setLoading] = useState<boolean>(() => {
 		try {
 			if (typeof window === "undefined") return false;
@@ -125,7 +129,12 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 			return false;
 		}
 	});
+
 	const [todayData, setTodayData] = useState<KanbanState | null>(null);
+	const [todayHasMore, setTodayHasMore] = useState(false);
+	const [todayPage, setTodayPage] = useState(1);
+	const [todayLoadingMore, setTodayLoadingMore] = useState(false);
+
 	const [pendingExpandSubject, setPendingExpandSubject] = useState<{ subject: string } | null>(
 		null,
 	);
@@ -481,7 +490,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 	}
 
 	const applyTodayDataPatchLocally = useCallback(
-		(subtaskId: number, patch: Partial<Pick<Subtask, "estimated_hours" | "target_date">>) => {
+		(subtaskId: number, patch: Partial<Pick<Subtask, "estimated_hours" | "target_date" | "status" | "postponement_note">>) => {
 			setTodayData((prev) => {
 				if (!prev) return prev;
 
@@ -515,9 +524,11 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
 				const nextSubtask: Subtask = { ...baseSubtask, ...patch };
 				const fallbackGroup = currentGroup ?? "upcoming";
-				const targetGroup = nextSubtask.target_date
-					? getKanbanGroupForDate(nextSubtask.target_date, getLocalDateKey())
-					: fallbackGroup;
+				const targetGroup = nextSubtask.status === "postponed"
+					? "postponed"
+					: nextSubtask.target_date
+						? getKanbanGroupForDate(nextSubtask.target_date, getLocalDateKey())
+						: fallbackGroup;
 
 				const nextState: KanbanState = {
 					overdue: prev.overdue.filter((subtask) => subtask.id !== subtaskId),
@@ -604,21 +615,28 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 			try {
 				const [me, actsRaw, todayRaw, subs] = await Promise.all([
 					fetchMe(),
-					fetchActivities(),
-					fetchTodayView(),
+					fetchActivities(1, 10),
+					fetchTodayView({ page: 1, limit: 10 }),
 					fetchSubjects(),
 				]);
 				if (!cancelled) {
 					setUser(me ?? null);
 					const acts = "results" in actsRaw ? actsRaw.results : actsRaw;
 					const todayView = "results" in todayRaw ? todayRaw.results : todayRaw;
+					
 					setActivities(Array.isArray(acts) ? acts : []);
+					setOrgHasMore("next" in actsRaw ? actsRaw.next !== null : false);
+					setOrgPage(1);
+
 					setTodayData({
 						overdue: todayView.overdue,
 						today: todayView.today,
 						upcoming: todayView.upcoming,
 						postponed: todayView.postponed ?? [],
 					});
+					setTodayHasMore("next" in todayRaw ? todayRaw.next !== null : false);
+					setTodayPage(1);
+					
 					setApiSubjects(Array.isArray(subs) ? subs : []);
 					void refreshConflicts();
 				}
@@ -636,6 +654,61 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 			cancelled = true;
 		};
 	}, [refreshConflicts]);
+
+	const loadMoreActivities = useCallback(async () => {
+		if (orgLoadingMore || !orgHasMore) return;
+		setOrgLoadingMore(true);
+		try {
+			const nextPage = orgPage + 1;
+			const actsRaw = await fetchActivities(nextPage, 10);
+			const acts = "results" in actsRaw ? actsRaw.results : actsRaw;
+			if (Array.isArray(acts) && acts.length > 0) {
+				setActivities((prev) => {
+					const newIds = new Set(prev.map((a) => a.id));
+					const filtered = acts.filter((a) => !newIds.has(a.id));
+					return [...prev, ...filtered];
+				});
+				setOrgPage(nextPage);
+				setOrgHasMore("next" in actsRaw ? actsRaw.next !== null : false);
+			} else {
+				setOrgHasMore(false);
+			}
+		} catch (err) {
+			console.error(err);
+		} finally {
+			setOrgLoadingMore(false);
+		}
+	}, [orgPage, orgHasMore, orgLoadingMore]);
+
+	const loadMoreToday = useCallback(async () => {
+		if (todayLoadingMore || !todayHasMore) return;
+		setTodayLoadingMore(true);
+		try {
+			const nextPage = todayPage + 1;
+			const todayRaw = await fetchTodayView({ page: nextPage, limit: 10 });
+			const todayView = "results" in todayRaw ? todayRaw.results : todayRaw;
+			
+			setTodayData((prev) => {
+				if (!prev) return prev;
+				const deduplicate = (oldItems: Subtask[], newItems: Subtask[]) => {
+					const existingIds = new Set(oldItems.map(s => s.id));
+					return [...oldItems, ...newItems.filter(s => !existingIds.has(s.id))];
+				};
+				return {
+					overdue: deduplicate(prev.overdue, todayView.overdue),
+					today: deduplicate(prev.today, todayView.today),
+					upcoming: deduplicate(prev.upcoming, todayView.upcoming),
+					postponed: deduplicate(prev.postponed, todayView.postponed ?? []),
+				};
+			});
+			setTodayPage(nextPage);
+			setTodayHasMore("next" in todayRaw ? todayRaw.next !== null : false);
+		} catch (err) {
+			console.error(err);
+		} finally {
+			setTodayLoadingMore(false);
+		}
+	}, [todayPage, todayHasMore, todayLoadingMore]);
 
 	const { greeting, GreetingIcon } = useMemo(() => {
 		const hour = new Date().getHours();
@@ -1505,6 +1578,9 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 							<TodayKanban
 								initialData={todayData}
 								onDataRefresh={setTodayData}
+								hasMore={todayHasMore}
+								loadingMore={todayLoadingMore}
+								onLoadMore={loadMoreToday}
 								activities={activities}
 								maxDailyHours={user?.max_daily_hours ?? 0}
 								conflictDates={conflictDates}
@@ -1527,6 +1603,9 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 							<OrganizationView
 								activities={activities}
 								subjects={subjects}
+								hasMore={orgHasMore}
+								loadingMore={orgLoadingMore}
+								onLoadMore={loadMoreActivities}
 								onDelete={requestDeleteActivity}
 								onAddSubject={addCustomSubject}
 								onRemoveSubject={removeCustomSubject}

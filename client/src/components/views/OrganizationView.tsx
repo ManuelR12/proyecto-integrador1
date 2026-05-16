@@ -186,9 +186,10 @@ export default function OrganizationView({
 			...prev,
 			[activityId]: {
 				...prev[activityId],
-				items: prev[activityId]?.items.map((s) =>
-					s.id === sub.id ? { ...s, status: nextStatus } : s,
-				) ?? [],
+				items:
+					prev[activityId]?.items.map((s) =>
+						s.id === sub.id ? { ...s, status: nextStatus } : s,
+					) ?? [],
 			},
 		}));
 		try {
@@ -206,9 +207,10 @@ export default function OrganizationView({
 				...prev,
 				[activityId]: {
 					...prev[activityId],
-					items: prev[activityId]?.items.map((s) =>
-						s.id === sub.id ? { ...s, status: prevStatus } : s,
-					) ?? [],
+					items:
+						prev[activityId]?.items.map((s) =>
+							s.id === sub.id ? { ...s, status: prevStatus } : s,
+						) ?? [],
 				},
 			}));
 			toast.error("No se pudo actualizar el estado.");
@@ -1017,8 +1019,21 @@ export default function OrganizationView({
 																								data-testid={`org-subtask-toggle-${sub.id}`}
 																								aria-label="Marcar como pendiente"
 																								title="Ciclar estado"
-																								style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex", flexShrink: 0 }}
-																								onClick={() => handleSubtaskStatusChange(act.id, sub, cycleStatus(sub.status))}
+																								style={{
+																									background: "none",
+																									border: "none",
+																									padding: 0,
+																									cursor: "pointer",
+																									display: "flex",
+																									flexShrink: 0,
+																								}}
+																								onClick={() =>
+																									handleSubtaskStatusChange(
+																										act.id,
+																										sub,
+																										cycleStatus(sub.status),
+																									)
+																								}
 																							>
 																								<CheckCircle2
 																									color="#34d399"
@@ -1030,15 +1045,40 @@ export default function OrganizationView({
 																								data-testid={`org-subtask-toggle-${sub.id}`}
 																								aria-label="Ciclar estado"
 																								title="Ciclar estado"
-																								style={{ background: "none", border: "none", padding: 0, cursor: togglingSubtaskId === sub.id ? "wait" : "pointer", display: "flex", flexShrink: 0, opacity: togglingSubtaskId === sub.id ? 0.5 : 1 }}
-																								onClick={() => handleSubtaskStatusChange(act.id, sub, cycleStatus(sub.status))}
+																								style={{
+																									background: "none",
+																									border: "none",
+																									padding: 0,
+																									cursor:
+																										togglingSubtaskId === sub.id
+																											? "wait"
+																											: "pointer",
+																									display: "flex",
+																									flexShrink: 0,
+																									opacity: togglingSubtaskId === sub.id ? 0.5 : 1,
+																								}}
+																								onClick={() =>
+																									handleSubtaskStatusChange(
+																										act.id,
+																										sub,
+																										cycleStatus(sub.status),
+																									)
+																								}
 																							>
 																								{togglingSubtaskId === sub.id ? (
-																									<Loader2 size={16} className="spinner" style={{ flexShrink: 0, color: ov.subCircle }} />
+																									<Loader2
+																										size={16}
+																										className="spinner"
+																										style={{ flexShrink: 0, color: ov.subCircle }}
+																									/>
 																								) : (
 																									<Circle
 																										size={16}
-																										color={sub.status === "in_progress" ? "#60a5fa" : ov.subCircle}
+																										color={
+																											sub.status === "in_progress"
+																												? "#60a5fa"
+																												: ov.subCircle
+																										}
 																										style={{ flexShrink: 0 }}
 																									/>
 																								)}
@@ -1105,11 +1145,17 @@ export default function OrganizationView({
 																								transition: "opacity 0.15s",
 																							}}
 																							onClick={(e) => {
-																								const rect = e.currentTarget.getBoundingClientRect();
+																								const rect =
+																									e.currentTarget.getBoundingClientRect();
 																								setStatusDropdown((prev) =>
 																									prev?.subtaskId === sub.id
 																										? null
-																										: { subtaskId: sub.id, activityId: act.id, top: rect.bottom + 4, left: rect.left },
+																										: {
+																												subtaskId: sub.id,
+																												activityId: act.id,
+																												top: rect.bottom + 4,
+																												left: rect.left,
+																											},
 																								);
 																							}}
 																						>
@@ -1486,92 +1532,92 @@ export default function OrganizationView({
 					</div>,
 					document.body,
 				)}
-		{/* ─── Subtask status dropdown portal ─── */}
-		{statusDropdown &&
-			createPortal(
-				<>
-					<div
-						style={{ position: "fixed", inset: 0, zIndex: 9998 }}
-						onClick={() => setStatusDropdown(null)}
-					/>
-					<div
-						data-testid="org-subtask-status-dropdown"
-						style={{
-							position: "fixed",
-							top: statusDropdown.top,
-							left: statusDropdown.left,
-							zIndex: 9999,
-							background: isDark ? "#1e293b" : "rgba(255,255,255,0.97)",
-							border: `1px solid ${isDark ? "#334155" : "rgba(124,92,255,0.22)"}`,
-							borderRadius: "10px",
-							overflow: "hidden",
-							boxShadow: isDark ? "0 8px 24px rgba(0,0,0,0.5)" : "0 8px 24px rgba(0,0,0,0.12)",
-							animation: "dropdownOpen 0.15s cubic-bezier(0.16,1,0.3,1)",
-							minWidth: "148px",
-						}}
-					>
-						{(
-							[
-								["pending", "Pendiente", "#fbbf24"],
-								["in_progress", "En progreso", "#60a5fa"],
-								["completed", "Completada", "#34d399"],
-							] as const
-						).map(([value, label, color]) => {
-							const actSubtask = subtaskStateByActivity[statusDropdown.activityId]?.items.find(
-								(s) => s.id === statusDropdown.subtaskId,
-							);
-							const isCurrent = actSubtask?.status === value;
-							return (
-								<button
-									key={value}
-									data-testid={`org-subtask-status-option-${statusDropdown.subtaskId}-${value}`}
-									onClick={() => {
-										if (actSubtask && !isCurrent) {
-											void handleSubtaskStatusChange(
-												statusDropdown.activityId,
-												actSubtask,
-												value,
-											);
-										}
-										setStatusDropdown(null);
-									}}
-									style={{
-										width: "100%",
-										padding: "9px 12px",
-										border: "none",
-										textAlign: "left",
-										fontSize: "12px",
-										fontFamily: "inherit",
-										cursor: isCurrent ? "default" : "pointer",
-										background: isCurrent
-											? isDark
-												? "rgba(124,92,255,0.18)"
-												: "rgba(124,92,255,0.1)"
-											: "transparent",
-										color: isCurrent ? color : isDark ? "#94a3b8" : "#7a728f",
-										fontWeight: isCurrent ? 700 : 400,
-										display: "flex",
-										alignItems: "center",
-										gap: "8px",
-									}}
-								>
-									<span
-										style={{
-											width: 8,
-											height: 8,
-											borderRadius: "50%",
-											background: color,
-											flexShrink: 0,
+			{/* ─── Subtask status dropdown portal ─── */}
+			{statusDropdown &&
+				createPortal(
+					<>
+						<div
+							style={{ position: "fixed", inset: 0, zIndex: 9998 }}
+							onClick={() => setStatusDropdown(null)}
+						/>
+						<div
+							data-testid="org-subtask-status-dropdown"
+							style={{
+								position: "fixed",
+								top: statusDropdown.top,
+								left: statusDropdown.left,
+								zIndex: 9999,
+								background: isDark ? "#1e293b" : "rgba(255,255,255,0.97)",
+								border: `1px solid ${isDark ? "#334155" : "rgba(124,92,255,0.22)"}`,
+								borderRadius: "10px",
+								overflow: "hidden",
+								boxShadow: isDark ? "0 8px 24px rgba(0,0,0,0.5)" : "0 8px 24px rgba(0,0,0,0.12)",
+								animation: "dropdownOpen 0.15s cubic-bezier(0.16,1,0.3,1)",
+								minWidth: "148px",
+							}}
+						>
+							{(
+								[
+									["pending", "Pendiente", "#fbbf24"],
+									["in_progress", "En progreso", "#60a5fa"],
+									["completed", "Completada", "#34d399"],
+								] as const
+							).map(([value, label, color]) => {
+								const actSubtask = subtaskStateByActivity[statusDropdown.activityId]?.items.find(
+									(s) => s.id === statusDropdown.subtaskId,
+								);
+								const isCurrent = actSubtask?.status === value;
+								return (
+									<button
+										key={value}
+										data-testid={`org-subtask-status-option-${statusDropdown.subtaskId}-${value}`}
+										onClick={() => {
+											if (actSubtask && !isCurrent) {
+												void handleSubtaskStatusChange(
+													statusDropdown.activityId,
+													actSubtask,
+													value,
+												);
+											}
+											setStatusDropdown(null);
 										}}
-									/>
-									{label}
-								</button>
-							);
-						})}
-					</div>
-				</>,
-				document.body,
-			)}
-	</>
+										style={{
+											width: "100%",
+											padding: "9px 12px",
+											border: "none",
+											textAlign: "left",
+											fontSize: "12px",
+											fontFamily: "inherit",
+											cursor: isCurrent ? "default" : "pointer",
+											background: isCurrent
+												? isDark
+													? "rgba(124,92,255,0.18)"
+													: "rgba(124,92,255,0.1)"
+												: "transparent",
+											color: isCurrent ? color : isDark ? "#94a3b8" : "#7a728f",
+											fontWeight: isCurrent ? 700 : 400,
+											display: "flex",
+											alignItems: "center",
+											gap: "8px",
+										}}
+									>
+										<span
+											style={{
+												width: 8,
+												height: 8,
+												borderRadius: "50%",
+												background: color,
+												flexShrink: 0,
+											}}
+										/>
+										{label}
+									</button>
+								);
+							})}
+						</div>
+					</>,
+					document.body,
+				)}
+		</>
 	);
 }

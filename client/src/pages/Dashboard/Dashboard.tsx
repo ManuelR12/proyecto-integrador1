@@ -402,19 +402,6 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 		[activities],
 	);
 
-	const refreshPlannerAfterConflictUpdate = useCallback(async () => {
-		const [actsRaw, todayRaw] = await Promise.all([fetchActivities(), fetchTodayView()]);
-		const acts = "results" in actsRaw ? actsRaw.results : actsRaw;
-		const today = "results" in todayRaw ? todayRaw.results : todayRaw;
-		setActivities(Array.isArray(acts) ? acts : []);
-		setTodayData({
-			overdue: today.overdue,
-			today: today.today,
-			upcoming: today.upcoming,
-			postponed: today.postponed ?? [],
-		});
-	}, []);
-
 	const refreshTodayFromOrganizationMutation = useCallback(async () => {
 		try {
 			const todayRaw = await fetchTodayView();
@@ -464,11 +451,20 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 					}
 					nextCompletedCount = Math.max(0, nextCompletedCount);
 
+					const totalSubtasks = activity.subtask_count ?? activity.subtasks?.length ?? 0;
+					let nextActivityStatus = activity.status;
+					if (totalSubtasks > 0 && nextCompletedCount === totalSubtasks) {
+						nextActivityStatus = "completed";
+					} else if (nextActivityStatus === "completed" && nextCompletedCount < totalSubtasks) {
+						nextActivityStatus = "pending";
+					}
+
 					return {
 						...activity,
 						subtasks: nextSubtasks,
 						total_estimated_hours: nextTotalEstimatedHours,
 						completed_subtasks_count: nextCompletedCount,
+						status: nextActivityStatus,
 					};
 				}),
 			);
@@ -481,7 +477,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 	}
 
 	const applyTodayDataPatchLocally = useCallback(
-		(subtaskId: number, patch: Partial<Pick<Subtask, "estimated_hours" | "target_date">>) => {
+		(subtaskId: number, patch: Partial<Subtask>) => {
 			setTodayData((prev) => {
 				if (!prev) return prev;
 
@@ -542,11 +538,10 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 			}
 
 			try {
-				await updateSubtask(activityId, subtask.id, { target_date: nextDate });
 				applySubtaskPatchLocally(subtask.id, { target_date: nextDate });
 				applyTodayDataPatchLocally(subtask.id, { target_date: nextDate });
+				await updateSubtask(activityId, subtask.id, { target_date: nextDate });
 				await refreshConflicts();
-				void refreshPlannerAfterConflictUpdate();
 				toast.success("Fecha actualizada. Carga recalculada.");
 			} catch (error) {
 				toast.error("No pudimos cambiar la fecha. Intenta de nuevo.");
@@ -557,7 +552,6 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 			applySubtaskPatchLocally,
 			applyTodayDataPatchLocally,
 			refreshConflicts,
-			refreshPlannerAfterConflictUpdate,
 			resolveActivityIdForConflictSubtask,
 		],
 	);
@@ -571,11 +565,10 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 			}
 
 			try {
-				await updateSubtask(activityId, subtask.id, { estimated_hours: nextHours });
 				applySubtaskPatchLocally(subtask.id, { estimated_hours: nextHours });
 				applyTodayDataPatchLocally(subtask.id, { estimated_hours: nextHours });
+				await updateSubtask(activityId, subtask.id, { estimated_hours: nextHours });
 				await refreshConflicts();
-				void refreshPlannerAfterConflictUpdate();
 				toast.success("Horas actualizadas. Carga recalculada.");
 			} catch (error) {
 				toast.error("No pudimos ajustar las horas. Intenta de nuevo.");
@@ -586,7 +579,6 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 			applySubtaskPatchLocally,
 			applyTodayDataPatchLocally,
 			refreshConflicts,
-			refreshPlannerAfterConflictUpdate,
 			resolveActivityIdForConflictSubtask,
 		],
 	);
@@ -750,12 +742,8 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 	const todayDateKey = getLocalDateKey();
 
 	const capacityUsed = useMemo(() => {
-		if (!todayData) return dateLoadMap[todayDateKey] ?? 0;
-		return todayData.today.reduce((sum, subtask) => {
-			if (subtask.status === "completed") return sum;
-			return sum + (Number(subtask.estimated_hours) || 0);
-		}, 0);
-	}, [dateLoadMap, todayData, todayDateKey]);
+		return dateLoadMap[todayDateKey] ?? 0;
+	}, [dateLoadMap, todayDateKey]);
 
 	const knownSubjects = useMemo(
 		() => [...new Set(activities.map((a) => a.course_name).filter(Boolean))].sort(),

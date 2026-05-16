@@ -1125,6 +1125,7 @@ export default function OrganizationView({
 						}));
 						onActivityUpdate({
 							...subtaskModalActivity,
+							subtasks: items,
 							subtask_count: items.length,
 							completed_subtasks_count: items.filter((i) => i.status === "completed").length,
 							total_estimated_hours: items.reduce(

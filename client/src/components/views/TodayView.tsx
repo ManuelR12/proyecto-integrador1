@@ -350,7 +350,7 @@ export default function TodayKanban({
 			toast.error("Actividad no encontrada.");
 			throw new Error("no activityId");
 		}
-		
+
 		// Optimistic update
 		const merged: Subtask = { ...subtask, ...fields };
 		let nextKanbanSnapshot: KanbanState | null = null;

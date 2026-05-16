@@ -22,7 +22,6 @@ import "@/pages/Dashboard/Dashboard.css";
 import { formatDate, daysUntil } from "@/pages/Dashboard/utils/dashboardUtils";
 import { SubjectFormModal } from "@/components/modals/Organizations/OrgModals";
 import SubtaskManagerModal from "@/components/modals/Subtasks/SubtaskManagerModal";
-import Pagination from "@/components/ui/Pagination";
 import { useTheme } from "@/hooks/useTheme";
 
 interface OrgViewProps {
@@ -45,6 +44,9 @@ interface OrgViewProps {
 	activeFilters: string[];
 	searchQuery: string;
 	expandSubject?: { subject: string } | null;
+	hasMore: boolean;
+	loadingMore: boolean;
+	onLoadMore: () => Promise<void>;
 }
 
 function toTestIdToken(value: string): string {
@@ -74,13 +76,13 @@ export default function OrganizationView({
 	activeFilters,
 	searchQuery,
 	expandSubject,
+	hasMore,
+	loadingMore,
+	onLoadMore,
 }: OrgViewProps) {
 	const { isDark } = useTheme();
 	const navigate = useNavigate();
 	const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
-
-	const [orgPage, setOrgPage] = useState(1);
-	const ORG_LIMIT = 10;
 
 	useEffect(() => {
 		if (expandSubject?.subject) {
@@ -327,10 +329,6 @@ export default function OrganizationView({
 		return a.localeCompare(b);
 	});
 
-	const paginatedSubjectKeys = useMemo(() => {
-		return allSubjectKeys.slice((orgPage - 1) * ORG_LIMIT, orgPage * ORG_LIMIT);
-	}, [allSubjectKeys, orgPage]);
-
 	if (allSubjectKeys.length === 0) {
 		return (
 			<div
@@ -351,6 +349,7 @@ export default function OrganizationView({
 				<button
 					className="btn-add"
 					style={{ margin: "0 auto", display: "inline-flex" }}
+					aria-label="Agregar nueva materia"
 					data-testid="org-empty-add-subject-btn"
 					onClick={() => {
 						const name = window.prompt("Nombre de la nueva materia:");
@@ -377,7 +376,7 @@ export default function OrganizationView({
 					gap: "1rem",
 				}}
 			>
-				{paginatedSubjectKeys.map((subject) => {
+				{allSubjectKeys.map((subject) => {
 					const acts = grouped[subject] ?? [];
 					const isOpen = expandedSubject === subject;
 					const subjectToken = toTestIdToken(subject);
@@ -465,6 +464,7 @@ export default function OrganizationView({
 								>
 									<button
 										title="Renombrar materia"
+										aria-label={`Renombrar materia ${subject}`}
 										onClick={() => setOrgSubjectModal({ mode: "rename", current: subject })}
 										data-testid={`org-subject-rename-btn-${subjectToken}`}
 										style={{
@@ -484,6 +484,7 @@ export default function OrganizationView({
 									</button>
 									<button
 										title="Eliminar materia"
+										aria-label={`Eliminar materia ${subject}`}
 										onClick={() => setOrgConfirmDelete(subject)}
 										data-testid={`org-subject-delete-btn-${subjectToken}`}
 										style={{
@@ -545,6 +546,7 @@ export default function OrganizationView({
 													gap: "6px",
 												}}
 												onClick={() => onOpenCreate(subject)}
+												aria-label={`Agregar actividad a ${subject}`}
 												data-testid={`org-subject-add-activity-empty-btn-${subjectToken}`}
 												onMouseOver={(e) => {
 													e.currentTarget.style.borderColor = "#94a3b8";
@@ -770,58 +772,62 @@ export default function OrganizationView({
 																	)}
 																</div>
 																{/* PROGRESS BAR - MOVED TO HEADER */}
-																{totalSubs > 0 && (
-																	<div style={{ marginTop: "12px", maxWidth: "400px" }}>
-																		<div
+																<div style={{ marginTop: "12px", maxWidth: "400px" }}>
+																	<div
+																		style={{
+																			display: "flex",
+																			justifyContent: "space-between",
+																			marginBottom: "4px",
+																		}}
+																	>
+																		<span
 																			style={{
-																				display: "flex",
-																				justifyContent: "space-between",
-																				marginBottom: "4px",
+																				fontSize: "10px",
+																				color: ov.progLabel,
+																				fontWeight: 600,
 																			}}
 																		>
-																			<span
-																				style={{
-																					fontSize: "10px",
-																					color: ov.progLabel,
-																					fontWeight: 600,
-																				}}
-																			>
-																				PROGRESO
-																			</span>
-																			<span
-																				data-testid={`org-activity-progress-count-${act.id}`}
-																				style={{ fontSize: "10px", color: ov.progCount }}
-																			>
-																				{completedSubs} de {totalSubs}
-																			</span>
-																		</div>
-																		<div
-																			role="progressbar"
-																			aria-valuenow={Math.round((completedSubs / totalSubs) * 100)}
-																			aria-valuemin={0}
-																			aria-valuemax={100}
-																			aria-label={`Progreso de ${act.title}: ${completedSubs} de ${totalSubs} subtareas completadas`}
-																			data-testid={`org-activity-progress-${act.id}`}
-																			style={{
-																				height: "5px",
-																				background: ov.progTrack,
-																				borderRadius: "4px",
-																				overflow: "hidden",
-																			}}
+																			PROGRESO
+																		</span>
+																		<span
+																			data-testid={`org-activity-progress-count-${act.id}`}
+																			style={{ fontSize: "10px", color: ov.progCount }}
 																		>
-																			<div
-																				data-testid={`org-activity-progress-fill-${act.id}`}
-																				style={{
-																					height: "100%",
-																					width: `${totalSubs > 0 ? (completedSubs / totalSubs) * 100 : 0}%`,
-																					background: "linear-gradient(90deg,#7c3aed,#34d399)",
-																					borderRadius: "4px",
-																					transition: "width 0.4s cubic-bezier(0.16,1,0.3,1)",
-																				}}
-																			/>
-																		</div>
+																			{totalSubs > 0
+																				? `${completedSubs} de ${totalSubs}`
+																				: "Sin subtareas"}
+																		</span>
 																	</div>
-																)}
+																	<div
+																		role="progressbar"
+																		aria-valuenow={
+																			totalSubs > 0
+																				? Math.round((completedSubs / totalSubs) * 100)
+																				: 0
+																		}
+																		aria-valuemin={0}
+																		aria-valuemax={100}
+																		aria-label={`Progreso de ${act.title}: ${completedSubs} de ${totalSubs} subtareas completadas`}
+																		data-testid={`org-activity-progress-${act.id}`}
+																		style={{
+																			height: "5px",
+																			background: ov.progTrack,
+																			borderRadius: "4px",
+																			overflow: "hidden",
+																		}}
+																	>
+																		<div
+																			data-testid={`org-activity-progress-fill-${act.id}`}
+																			style={{
+																				height: "100%",
+																				width: `${totalSubs > 0 ? (completedSubs / totalSubs) * 100 : 0}%`,
+																				background: "linear-gradient(90deg,#7c3aed,#34d399)",
+																				borderRadius: "4px",
+																				transition: "width 0.4s cubic-bezier(0.16,1,0.3,1)",
+																			}}
+																		/>
+																	</div>
+																</div>
 															</div>
 															<div
 																style={{
@@ -850,6 +856,7 @@ export default function OrganizationView({
 																		whiteSpace: "nowrap",
 																	}}
 																	onClick={() => toggleActivity(act.id)}
+																	aria-label={`Ver subtareas de ${act.title}`}
 																	data-testid={`org-activity-subtasks-toggle-${act.id}`}
 																	onMouseOver={(e) => {
 																		if (!isActOpen) {
@@ -890,6 +897,7 @@ export default function OrganizationView({
 																		transition: "color 0.15s",
 																	}}
 																	onClick={() => navigate(`/actividad/${act.id}/edit`)}
+																	aria-label={`Editar actividad ${act.title}`}
 																	data-testid={`org-activity-edit-btn-${act.id}`}
 																	onMouseOver={(e) => (e.currentTarget.style.color = "#c084fc")}
 																	onMouseOut={(e) => (e.currentTarget.style.color = "#334155")}
@@ -909,6 +917,7 @@ export default function OrganizationView({
 																		transition: "color 0.15s",
 																	}}
 																	onClick={() => onDelete(act.id, act.title)}
+																	aria-label={`Eliminar actividad ${act.title}`}
 																	data-testid={`org-activity-delete-btn-${act.id}`}
 																	onMouseOver={(e) => (e.currentTarget.style.color = "#f87171")}
 																	onMouseOut={(e) => (e.currentTarget.style.color = "#334155")}
@@ -1236,11 +1245,34 @@ export default function OrganizationView({
 						</div>
 					);
 				})}
-				<Pagination
-					currentPage={orgPage}
-					totalPages={Math.ceil(allSubjectKeys.length / ORG_LIMIT)}
-					onPageChange={setOrgPage}
-				/>
+
+				{/* LOAD MORE EXTENSION */}
+				{hasMore && (
+					<div style={{ textAlign: "center", marginTop: "1rem" }}>
+						<button
+							className="btn-add"
+							style={{
+								margin: "0 auto",
+								display: "inline-flex",
+								background: loadingMore ? "transparent" : "",
+							}}
+							disabled={loadingMore}
+							onClick={() => {
+								void onLoadMore();
+							}}
+						>
+							{loadingMore ? (
+								<>
+									<Loader2 size={15} className="spinner" style={{ marginRight: 6 }} /> Cargando...
+								</>
+							) : (
+								<>
+									<span>Cargar más materias y actividades...</span>
+								</>
+							)}
+						</button>
+					</div>
+				)}
 			</div>
 
 			{/* Subtask manager modal */}

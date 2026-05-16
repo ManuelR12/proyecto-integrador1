@@ -36,7 +36,6 @@ import {
 import { type ConflictInfo } from "@/components/modals/Activities/ConflictModal";
 import { SubtaskDetailPanel } from "@/components/shared/SubtaskDetailPanel";
 import { CreateSubtaskModal } from "@/components/modals/Subtasks/SubtaskModals";
-import Pagination from "@/components/ui/Pagination";
 
 /** Sorting rule ("Regla de Oro"):
  *  - Overdue  → chronological, oldest first (target_date ASC)
@@ -81,9 +80,12 @@ function upsertSubtaskAcrossKanban(
 	nextSubtask: Subtask,
 	fallbackGroup: KanbanGroup,
 ): { nextState: KanbanState; nextGroup: KanbanGroup } {
-	const targetGroup = nextSubtask.target_date
-		? getKanbanGroupForDate(nextSubtask.target_date)
-		: fallbackGroup;
+	const targetGroup =
+		nextSubtask.status === "postponed"
+			? "postponed"
+			: nextSubtask.target_date
+				? getKanbanGroupForDate(nextSubtask.target_date)
+				: fallbackGroup;
 
 	const nextState: KanbanState = {
 		overdue: state.overdue.filter((item) => item.id !== subtaskId),
@@ -106,6 +108,9 @@ export default function TodayKanban({
 	onConflict,
 	onSubtaskMutated,
 	searchQuery = "",
+	hasMore,
+	loadingMore,
+	onLoadMore,
 }: {
 	initialData: KanbanState | null;
 	onDataRefresh: (data: KanbanState) => void;
@@ -115,10 +120,15 @@ export default function TodayKanban({
 	onConflict?: (info: ConflictInfo) => void;
 	onSubtaskMutated?: (
 		subtaskId?: number,
-		patch?: Partial<Pick<Subtask, "estimated_hours" | "target_date" | "status">>,
+		patch?: Partial<
+			Pick<Subtask, "estimated_hours" | "target_date" | "status" | "postponement_note">
+		>,
 		previousStatus?: string,
 	) => void;
 	searchQuery?: string;
+	hasMore: boolean;
+	loadingMore: boolean;
+	onLoadMore: () => Promise<void>;
 }) {
 	const { isDark } = useTheme();
 	// Theme-aware color palette (avoids CSS overriding inline styles)
@@ -170,13 +180,6 @@ export default function TodayKanban({
 	} as const;
 
 	const [kanban, setKanban] = useState<KanbanState>(initialData ?? EMPTY_KANBAN);
-	const [pageMap, setPageMap] = useState<Record<KanbanGroup, number>>({
-		overdue: 1,
-		today: 1,
-		upcoming: 1,
-		postponed: 1,
-	});
-	const ITEMS_PER_PAGE = 10;
 	const [kanbanLoading, setKanbanLoading] = useState(!initialData);
 	const [selectedSubtask, setSelectedSubtask] = useState<{
 		subtask: Subtask;
@@ -343,8 +346,19 @@ export default function TodayKanban({
 	async function handleEdit(
 		subtask: Subtask,
 		group: KanbanGroup,
-		fields: Partial<Pick<Subtask, "name" | "estimated_hours" | "target_date" | "status">>,
+		fields: Partial<
+			Pick<Subtask, "name" | "estimated_hours" | "target_date" | "status" | "postponement_note">
+		>,
 	) {
+		if (
+			subtask.status === "postponed" &&
+			(fields.status === "postponed" || fields.status === undefined) &&
+			fields.target_date &&
+			fields.target_date !== subtask.target_date
+		) {
+			fields.status = "pending";
+		}
+
 		const activityId = resolveActivityId(subtask);
 		if (!activityId) {
 			toast.error("Actividad no encontrada.");
@@ -594,6 +608,7 @@ export default function TodayKanban({
 				{/* Nueva subtarea CTA */}
 				<button
 					onClick={() => setCreateModalOpen(true)}
+					aria-label="Crear nueva subtarea"
 					data-testid="today-new-subtask-btn"
 					style={{
 						display: "flex",
@@ -646,6 +661,7 @@ export default function TodayKanban({
 									: { type: "status", top: rect.bottom + 6, left: rect.left, width: rect.width },
 							);
 						}}
+						aria-label="Filtrar por estado"
 						data-testid="today-status-filter-btn"
 						style={{
 							height: "34px",
@@ -678,6 +694,7 @@ export default function TodayKanban({
 									: { type: "course", top: rect.bottom + 6, left: rect.left, width: rect.width },
 							);
 						}}
+						aria-label="Filtrar por materia"
 						data-testid="today-course-filter-btn"
 						style={{
 							height: "34px",
@@ -707,6 +724,7 @@ export default function TodayKanban({
 							setCourseFilter("all");
 							setToolbarSelect(null);
 						}}
+						aria-label="Limpiar todos los filtros"
 						data-testid="today-clear-filters-btn"
 						style={{
 							height: "34px",
@@ -756,6 +774,7 @@ export default function TodayKanban({
 													["pending", "Pendiente"],
 													["in_progress", "En progreso"],
 													["completed", "Completada"],
+													["postponed", "Pospuesta"],
 												] as const
 											).map(([value, label]) => (
 												<button
@@ -849,6 +868,7 @@ export default function TodayKanban({
 						<button
 							key={group}
 							onClick={() => setActiveTab(group)}
+							aria-label={`Ver columna ${label}`}
 							data-testid={`today-tab-${group}`}
 							style={{
 								position: "relative",
@@ -1040,7 +1060,7 @@ export default function TodayKanban({
 							</div>
 						) : (
 							(() => {
-								const filteredItems = items
+								const visibleItems = items
 									.filter((s) => statusFilter === "all" || s.status === statusFilter)
 									.filter(
 										(s) =>
@@ -1055,13 +1075,6 @@ export default function TodayKanban({
 											s.name.toLowerCase().includes(searchQuery.trim().toLowerCase()),
 									);
 
-								const currentPage = pageMap[group] || 1;
-								const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
-								const visibleItems = filteredItems.slice(
-									(currentPage - 1) * ITEMS_PER_PAGE,
-									currentPage * ITEMS_PER_PAGE,
-								);
-
 								return (
 									<>
 										{visibleItems.map((subtask) => {
@@ -1072,11 +1085,13 @@ export default function TodayKanban({
 												pending: "#fbbf24",
 												in_progress: "#60a5fa",
 												completed: "#34d399",
+												postponed: "#fb923c",
 											};
 											const sLabel: Record<string, string> = {
 												pending: "Pendiente",
 												in_progress: "En progreso",
 												completed: "Completada",
+												postponed: "Pospuesta",
 											};
 											const diff = daysUntil(subtask.target_date);
 											let dayText = "",
@@ -1199,6 +1214,7 @@ export default function TodayKanban({
 																			left: rect.left,
 																		});
 																	}}
+																	aria-label={`Cambiar estado: ${statusLabel}`}
 																	data-testid={`today-subtask-status-btn-${subtask.id}`}
 																	style={{
 																		display: "inline-flex",
@@ -1290,6 +1306,7 @@ export default function TodayKanban({
 																									);
 																								}
 																							}}
+																							aria-label={`Cambiar estado a ${label}`}
 																							data-testid={`today-subtask-status-option-${subtask.id}-${val}`}
 																							style={{
 																								display: "flex",
@@ -1373,6 +1390,7 @@ export default function TodayKanban({
 																							}}
 																						/>
 																						<button
+																							aria-label="Confirmar posposición"
 																							onClick={() => {
 																								setOpenSelect(null);
 																								void handleToggle(
@@ -1549,12 +1567,38 @@ export default function TodayKanban({
 												</div>
 											);
 										})}
-										{totalPages > 1 && (
-											<Pagination
-												currentPage={currentPage}
-												totalPages={totalPages}
-												onPageChange={(page) => setPageMap((prev) => ({ ...prev, [group]: page }))}
-											/>
+										{hasMore && (
+											<button
+												style={{
+													marginTop: "12px",
+													width: "100%",
+													padding: "10px",
+													borderRadius: "8px",
+													border: `1px dashed ${tv.cardBdr}`,
+													background: loadingMore ? "transparent" : tv.chipBg,
+													color: tv.chipColor,
+													cursor: loadingMore ? "wait" : "pointer",
+													display: "flex",
+													justifyContent: "center",
+													alignItems: "center",
+													fontWeight: 600,
+													fontSize: "12px",
+													transition: "all 0.2s",
+												}}
+												disabled={loadingMore}
+												onClick={() => {
+													void onLoadMore();
+												}}
+											>
+												{loadingMore ? (
+													<>
+														<Loader2 size={14} className="spinner" style={{ marginRight: 6 }} />{" "}
+														Cargando...
+													</>
+												) : (
+													"Cargar más de la columna"
+												)}
+											</button>
 										)}
 									</>
 								);

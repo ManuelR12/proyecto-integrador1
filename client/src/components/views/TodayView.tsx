@@ -431,7 +431,7 @@ export default function TodayKanban({
 		try {
 			await deleteSubtask(activityId, subtask.id);
 			toast.success("Tarea eliminada");
-		} catch (error) {
+		} catch {
 			toast.error("No se pudo eliminar la tarea en el servidor.");
 		}
 	}

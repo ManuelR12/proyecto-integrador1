@@ -402,19 +402,6 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 		[activities],
 	);
 
-	const refreshPlannerAfterConflictUpdate = useCallback(async () => {
-		const [actsRaw, todayRaw] = await Promise.all([fetchActivities(), fetchTodayView()]);
-		const acts = "results" in actsRaw ? actsRaw.results : actsRaw;
-		const today = "results" in todayRaw ? todayRaw.results : todayRaw;
-		setActivities(Array.isArray(acts) ? acts : []);
-		setTodayData({
-			overdue: today.overdue,
-			today: today.today,
-			upcoming: today.upcoming,
-			postponed: today.postponed ?? [],
-		});
-	}, []);
-
 	const refreshTodayFromOrganizationMutation = useCallback(async () => {
 		try {
 			const todayRaw = await fetchTodayView();
